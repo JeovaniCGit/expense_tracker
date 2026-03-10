@@ -1,0 +1,133 @@
+﻿using ErrorOr;
+using ExpenseTracker.Application.Abstractions.DateTimeProvider;
+using ExpenseTracker.Application.Accounts.Contracts.Requests;
+using ExpenseTracker.Application.Accounts.Errors;
+using ExpenseTracker.Application.Accounts.Services.UserServices;
+using ExpenseTracker.Application.Authorization.BCryptLib;
+using ExpenseTracker.Application.Authorization.UserRoles.Enums;
+using ExpenseTracker.Domain.Accounts.Entity;
+using ExpenseTracker.Domain.Accounts.Repository;
+using FluentValidation;
+using Moq;
+
+namespace ExpenseTrackerApplication.Tests.Accounts;
+
+public class CreateUserUseCaseTests
+{
+    private readonly Mock<IUserRepository> _userRepositoryMock;
+    private readonly Mock<IPasswordHistoryRepository> _passwordHistoryMock;
+    private readonly Mock<IPasswordHasher> _passwordHasherMock;
+    private readonly Mock<IValidator<AddUserRequestDto>> _addUserValidatorMock;
+    private readonly Mock<IValidator<UpdateUserRequestDto>> _updateUserValidatorMock;
+    private readonly Mock<IDateProvider> _dateProviderMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+    private readonly UserService _sut;
+
+    public CreateUserUseCaseTests()
+    {
+        _userRepositoryMock = new Mock<IUserRepository>();
+        _passwordHistoryMock = new Mock<IPasswordHistoryRepository>();
+        _passwordHasherMock = new Mock<IPasswordHasher>();
+        _addUserValidatorMock = new Mock<IValidator<AddUserRequestDto>>();
+        _updateUserValidatorMock = new Mock<IValidator<UpdateUserRequestDto>>();
+        _dateProviderMock = new Mock<IDateProvider>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _sut = new UserService(
+            _userRepositoryMock.Object,
+            _passwordHistoryMock.Object,
+            _passwordHasherMock.Object,
+            _addUserValidatorMock.Object,
+            _updateUserValidatorMock.Object,
+            _dateProviderMock.Object,
+            _currentUserServiceMock.Object
+        );
+    }
+
+    [Fact]
+    public async Task CreateUser_WhenUserAlreadyExists_ShouldReturnDuplicatedEntryError()
+    {
+        // Arrange
+        AddUserRequestDto request = new()
+        {
+            Firstname = "John",
+            Lastname = "Doe",
+            Email = "john@doe.com",
+            Password = "Password123!"
+        };
+
+        User existingUser = new User
+        {
+            Firstname = "John", 
+            Lastname = "Doe", 
+            Email = "john@doe.com", 
+            Password = "hashedpassword", 
+            RoleId = (long)UserRoleEnum.RegularUser
+        };
+
+        _userRepositoryMock.Setup(repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingUser);
+
+        // Act
+        var result = await _sut.CreateUser(request, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.IsError);
+        Assert.Equal(UserErrors.DuplicatedEntry, result.FirstError);
+
+        _userRepositoryMock.Verify(
+            repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()), 
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task CreateUser_WhenRequestIsValid_ShouldReturnAddUserResponseDto()
+    {
+        // Arrange
+        AddUserRequestDto request = new()
+        {
+            Firstname = "John",
+            Lastname = "Doe",
+            Email = "john@doe.com",
+            Password = "Password123!"
+        };
+
+        User createdUser = new User
+        {
+            Firstname = request.Firstname,
+            Lastname = request.Lastname,
+            Email = request.Email,
+            Password = "hashedpassword",
+            RoleId = (long)UserRoleEnum.RegularUser,
+            ExternalId = Guid.NewGuid()
+        };
+
+        _userRepositoryMock.Setup(repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        _userRepositoryMock.Setup(repo => repo.CreateUser(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(createdUser);
+
+        _passwordHasherMock.Setup(hasher => hasher.Hash(It.IsAny<string>()))
+            .Returns("hashedpassword");
+
+        // Act
+        var result = await _sut.CreateUser(request, CancellationToken.None);
+
+        // Assert
+        Assert.False(result.IsError);
+        Assert.Equal(request.Firstname, result.Value.Firstname);
+        Assert.Equal(request.Lastname, result.Value.Lastname);
+        Assert.NotEqual(Guid.Empty, result.Value.ExternalId);
+
+        _userRepositoryMock.Verify(
+            repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()), 
+            Times.Once
+        );
+
+        _userRepositoryMock.Verify(
+            repo => repo.CreateUser(It.IsAny<User>(), It.IsAny<CancellationToken>()), 
+            Times.Once
+        );
+    }
+}
