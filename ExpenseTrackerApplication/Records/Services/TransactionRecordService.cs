@@ -1,4 +1,5 @@
 ﻿using ErrorOr;
+using ExpenseTracker.Application.Accounts.Services.UserServices;
 using ExpenseTracker.Application.Authorization.UserRoles.Enums;
 using ExpenseTracker.Application.Categories.Errors;
 using ExpenseTracker.Application.Collections.Errors;
@@ -10,6 +11,7 @@ using ExpenseTracker.Domain.Accounts.Repository;
 using ExpenseTracker.Domain.Categories.Entity;
 using ExpenseTracker.Domain.Categories.Repository;
 using ExpenseTracker.Domain.Collection.Repository;
+using ExpenseTracker.Domain.Collections.Entity;
 using ExpenseTracker.Domain.Records.Entity;
 using ExpenseTracker.Domain.Records.Repository;
 using FluentValidation;
@@ -27,6 +29,7 @@ public sealed class TransactionRecordService : ITransactionRecordService
     private readonly IValidator<AddTransactionRecordRequestDto> _addRecordValidator;
     private readonly IValidator<UpdateTransactionRecordRequestDto> _updateRecordValidator;
     private readonly IValidator<List<UpdateTransactionRecordRequestDto>> _updateRecordsValidator;
+    private readonly ICurrentUserService _currentUserService;
 
     public TransactionRecordService(
         ITransactionRecordRepository transactionRecordRepository,
@@ -36,7 +39,8 @@ public sealed class TransactionRecordService : ITransactionRecordService
         IHttpContextAccessor context,
         IValidator<AddTransactionRecordRequestDto> addRecordvalidator,
         IValidator<UpdateTransactionRecordRequestDto> updateRecordValidator,
-        IValidator<List<UpdateTransactionRecordRequestDto>> updateRecordsValidator
+        IValidator<List<UpdateTransactionRecordRequestDto>> updateRecordsValidator,
+        ICurrentUserService currentUserService
         )
     {
         _transactionRecordRepository = transactionRecordRepository;
@@ -47,6 +51,7 @@ public sealed class TransactionRecordService : ITransactionRecordService
         _addRecordValidator = addRecordvalidator;
         _updateRecordValidator = updateRecordValidator;
         _updateRecordsValidator = updateRecordsValidator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ErrorOr<AddTransactionRecordResponseDto>> AddUserTransactionRecord(AddTransactionRecordRequestDto request, CancellationToken ctoken = default)
@@ -54,20 +59,17 @@ public sealed class TransactionRecordService : ITransactionRecordService
         await _addRecordValidator.ValidateAndThrowAsync(request, ctoken);
 
         User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(request.TransactionUserExternalId));
-        if (existingUser is null)
-            return TransactionRecordErrors.Unauthorized;
 
-        if (request.TransactionValue < 0)
+        if (existingUser is null)
             return TransactionRecordErrors.InvalidArgs;
 
         IEnumerable<TransactionRecordCategory> defaultCategories = await _transactionRecordCategoryRepository.GetAllTransactionsCategories(ctoken);
         IEnumerable<TransactionRecordCategory> userCategories = await _transactionRecordCategoryRepository.GetAllUserTransactionCategories(existingUser.Id, ctoken);
 
         TransactionRecordCategory? validatedCategoryId = userCategories.Where(tc => tc.ExternalId == Guid.Parse(request.TransactionCategoryExternalId)).FirstOrDefault();
+
         if (validatedCategoryId is null)
-        {
             validatedCategoryId = defaultCategories.Where(tc => tc.ExternalId == Guid.Parse(request.TransactionCategoryExternalId)).FirstOrDefault();
-        }
 
         if (validatedCategoryId is null)
             return TransactionRecordCategoryErrors.NotFound;
@@ -89,38 +91,40 @@ public sealed class TransactionRecordService : ITransactionRecordService
         };
     }
 
-    public async Task<ErrorOr<int>> DeleteTransactionRecord(string userExternalId, string recordExternalId, CancellationToken ctoken = default)
+    public async Task<ErrorOr<int>> DeleteTransactionRecord(string recordExternalId, CancellationToken ctoken = default)
     {
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(userExternalId), ctoken);
-        if (existingUser is null)
-            return TransactionRecordErrors.Unauthorized;
+        long requestUserId = _currentUserService.UserId;
+        User? requestUser = await _userRepository.GetUserById(requestUserId, ctoken);
 
         TransactionRecord? existingRecord = await _transactionRecordRepository.GetTransactionRecordByExternalId(Guid.Parse(recordExternalId), ctoken);
+
         if (existingRecord is null)
             return TransactionRecordErrors.NotFound;
 
-        if (existingUser.Role.Id == (long)UserRoleEnum.Admin)
+        if (requestUser.Role.Id == (long)UserRoleEnum.Admin)
             return await _transactionRecordRepository.DeleteTransactionRecord(existingRecord, ctoken);
 
 
-        bool isUserOwner = existingRecord.TransactionUserId == existingUser.Id;
+        bool isUserOwner = existingRecord.TransactionUserId == requestUser.Id;
+
         if (!isUserOwner)
             return TransactionRecordErrors.NotOwner;
 
         return await _transactionRecordRepository.DeleteTransactionRecord(existingRecord, ctoken);
     }
 
-    public async Task<ErrorOr<IEnumerable<GetTransactionRecordResponseDto>>> GetAllUserTransactionsByCategory(string userExternalId, string categoryExternalId, CancellationToken ctoken = default)
+    public async Task<ErrorOr<IEnumerable<GetTransactionRecordResponseDto>>> GetAllUserTransactionsByCategory(string categoryExternalId, CancellationToken ctoken = default)
     {
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(userExternalId), ctoken);
-        if (existingUser is null)
-            return TransactionRecordErrors.Unauthorized;
+        long requestUserId = _currentUserService.UserId;
+
+        User? requestUser = await _userRepository.GetUserById(requestUserId, ctoken);
 
         long? existingCategoryId = await _transactionRecordCategoryRepository.GetTransactionCategoryIdByExternalId(Guid.Parse(categoryExternalId), ctoken);
+
         if (existingCategoryId is null)
             return TransactionRecordCategoryErrors.NotFound;
 
-        IEnumerable<TransactionRecord> records = await _transactionRecordRepository.GetAllUserTransactionsByCategory(existingUser.Id, existingCategoryId.Value);
+        IEnumerable<TransactionRecord> records = await _transactionRecordRepository.GetAllUserTransactionsByCategory(requestUserId, existingCategoryId.Value);
 
         return records.Select(tr => new GetTransactionRecordResponseDto
         {
@@ -131,77 +135,110 @@ public sealed class TransactionRecordService : ITransactionRecordService
         }).ToList();
     }
 
-    public async Task<ErrorOr<int>> UpdateAllUserTransactions(string userExternalId, List<UpdateTransactionRecordRequestDto> request, CancellationToken ctoken = default)
+    public async Task<ErrorOr<int>> UpdateAllUserTransactions(List<UpdateTransactionRecordRequestDto> request, CancellationToken ctoken = default)
     {
         await _updateRecordsValidator.ValidateAndThrowAsync(request, ctoken);
 
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(userExternalId));
+        long requestUserId = _currentUserService.UserId;
+        User? existingUser = await _userRepository.GetUserById(requestUserId);
+
         if (existingUser is null)
-            return TransactionRecordErrors.Unauthorized;
+            return TransactionRecordErrors.InvalidArgs;
 
-        List<Guid> externalIdsFromRequest = request.Select(r => Guid.Parse(r.TransactionCategoryExternalId)).Distinct().ToList();
-        IEnumerable<TransactionRecordCategory> existingCategories = await _transactionRecordCategoryRepository.GetAllUserTransactionCategories(existingUser.Id, ctoken);
-        Dictionary<Guid, long> categoryLookup = existingCategories.ToDictionary(c => c.ExternalId, c => c.Id);
-
-        if (externalIdsFromRequest.Any(id => !categoryLookup.ContainsKey(id)))
-            return TransactionRecordErrors.NotOwner;
-
-        List<TransactionRecord> mappedRecords = request.Select(r =>
+        var parsedRequestData = request.Select(r => new
         {
-            Guid categoryExternalId = Guid.Parse(r.TransactionCategoryExternalId);
-
-            return new TransactionRecord
-            {
-                TransactionValue = r.TransactionValue,
-                TransactionUserId = existingUser.Id,
-                TransactionCategoryId = categoryLookup[categoryExternalId]
-            };
+            RecordExternalId = Guid.Parse(r.TransactionExternalId),
+            CategoryExternalId = Guid.Parse(r.TransactionCategoryExternalId),
+            Value = r.TransactionValue
         }).ToList();
 
-        return await _transactionRecordRepository.UpdateAllUserTransactions(mappedRecords, ctoken);
+
+        // Records validation
+        var recordDuplicates = parsedRequestData
+            .GroupBy(x => x.RecordExternalId)
+            .Where(g => g.Count() > 1);
+
+        if (recordDuplicates.Any())
+            return TransactionRecordErrors.InvalidArgs;
+
+        List<Guid> recordsExternalIds = parsedRequestData
+            .Select(data => data.RecordExternalId)
+            .ToList();
+
+        IEnumerable<TransactionRecord> existingRecords = await _transactionRecordRepository
+            .GetUserTransactionsByExternalId(existingUser.Id, recordsExternalIds, ctoken);
+        Dictionary<Guid, TransactionRecord> recordsLookup = existingRecords.ToDictionary(r => r.ExternalId);
+
+        var missingRecords = parsedRequestData
+            .Where(r => !recordsLookup.ContainsKey(r.RecordExternalId))
+            .ToList();
+
+        if (missingRecords.Any())
+            return TransactionRecordErrors.InvalidArgs;
+
+
+        // Categories validation
+        List<Guid> requestCategoryExternalIds = parsedRequestData
+            .Select(r => r.CategoryExternalId)
+            .ToList();
+
+        IEnumerable<TransactionRecordCategory> existingCategories = await _transactionRecordCategoryRepository
+            .GetUserCategoriesByExternalIds(existingUser.Id, requestCategoryExternalIds, ctoken);
+
+        Dictionary<Guid, long> categoryLookup = existingCategories.ToDictionary(c => c.ExternalId, c => c.Id);
+
+        if (requestCategoryExternalIds.Any(id => !categoryLookup.ContainsKey(id)))
+            return TransactionRecordErrors.InvalidArgs;
+
+
+        // Update
+        List<TransactionRecord> updatedRecords = parsedRequestData.Select(data =>
+        {
+            TransactionRecord record = recordsLookup[data.RecordExternalId];
+            record.TransactionValue = data.Value;
+            record.TransactionCategoryId = categoryLookup[data.CategoryExternalId];
+            return record;
+        }).ToList();
+
+        return await _transactionRecordRepository.UpdateAllUserTransactions(updatedRecords, ctoken);
     }
 
-    public async Task<ErrorOr<int>> UpdateUserTransaction(string userExternalId, UpdateTransactionRecordRequestDto request, CancellationToken ctoken = default)
+    public async Task<ErrorOr<int>> UpdateUserTransaction(UpdateTransactionRecordRequestDto request, CancellationToken ctoken = default)
     {
         await _updateRecordValidator.ValidateAndThrowAsync(request, ctoken);
 
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(userExternalId));
+        long requestUserId = _currentUserService.UserId;
+        User? existingUser = await _userRepository.GetUserById(requestUserId);
+
         if (existingUser is null)
-            return TransactionRecordErrors.Unauthorized;
+            return TransactionRecordErrors.InvalidArgs;
 
-        Guid externalIdFromRequest = Guid.Parse(request.TransactionExternalId);
+        TransactionRecord? existingRecord = await _transactionRecordRepository.GetUserTransactionByCategoryExternalId(Guid.Parse(request.TransactionExternalId), Guid.Parse(request.TransactionCategoryExternalId), ctoken);
 
-        long? existingCategoryId = await _transactionRecordCategoryRepository.GetTransactionCategoryIdByExternalId(externalIdFromRequest, ctoken);
-        if (existingCategoryId is null)
-            return TransactionRecordCategoryErrors.NotFound;
-
-        long? existingRecordId = await _transactionRecordRepository.GetTransactionRecordIdByExternalId(Guid.Parse(request.TransactionExternalId), ctoken);
-        if (existingRecordId is null)
+        if (existingRecord is null)
             return TransactionRecordErrors.NotFound;
 
-        TransactionRecord? existingRecord = await _transactionRecordRepository.GetTransactionRecordById((long)existingRecordId, ctoken);
         if (existingRecord!.TransactionUserId != existingUser.Id)
             return TransactionRecordErrors.NotOwner;
 
-        TransactionRecord mappedRecord = new TransactionRecord
-        {
-            TransactionUserId = existingUser.Id,
-            TransactionValue = request.TransactionValue,
-            TransactionCategoryId = existingRecord.TransactionCategoryId,
-        };
+        existingRecord.TransactionUserId = existingUser.Id;
+        existingRecord.TransactionValue = request.TransactionValue;
+        existingRecord.TransactionCategoryId = existingRecord.TransactionCategoryId;
 
-        return await _transactionRecordRepository.UpdateTransactionRecord(mappedRecord, ctoken);
+        return await _transactionRecordRepository.UpdateTransaction(existingRecord, ctoken);
     }
 
     public async Task<ErrorOr<IEnumerable<GetTransactionRecordResponseDto>>> GetAllTransactionsByCollectionId(string collectionExternalId, CancellationToken ctoken = default)
     {
-        long userId = Convert.ToInt32(_context.HttpContext!.User.FindFirst("sub")!.Value);
+        long userId = _currentUserService.UserId;
+        User? existingUser = await _userRepository.GetUserById(userId, ctoken);
 
-        long? collectionExistsId = await _transactionCollectionRepository.GetCollectionIdByExternalId(Guid.Parse(collectionExternalId), ctoken);
-        if (collectionExistsId is null)
+        TransactionCollection? collectionExists = await _transactionCollectionRepository.GetUserCollectionByExternalId(userId, Guid.Parse(collectionExternalId), ctoken);
+
+        if (collectionExists is null)
             return CollectionErrors.NotFound;
 
-        IEnumerable<TransactionRecord> records = await _transactionRecordRepository.GetAllUserTransactionsByCollection(userId, (long)collectionExistsId, ctoken);
+        IEnumerable<TransactionRecord> records = await _transactionRecordRepository.GetAllUserTransactionsByCollection(userId, collectionExists.Id, ctoken);
 
         return records.Select(r => new GetTransactionRecordResponseDto
         {
