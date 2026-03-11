@@ -43,9 +43,9 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordRead)]
-    public async Task<ActionResult<IEnumerable<GetTransactionRecordResponseDto>>> GetByCategoryId([FromRoute] string userExternalId, [FromQuery] string categoryExternalId, CancellationToken ctoken)
+    public async Task<ActionResult<IEnumerable<GetTransactionRecordResponseDto>>> GetByCategoryId([FromQuery] string categoryExternalId, CancellationToken ctoken)
     {
-        ErrorOr<IEnumerable<GetTransactionRecordResponseDto>> result = await _transactionRecordService.GetAllUserTransactionsByCategory(userExternalId, categoryExternalId, ctoken);
+        ErrorOr<IEnumerable<GetTransactionRecordResponseDto>> result = await _transactionRecordService.GetAllUserTransactionsByCategory(categoryExternalId, ctoken);
 
         if (result.IsError)
             return result.Errors.MapToStatusCode();
@@ -74,9 +74,9 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordWrite)]
-    public async Task<ActionResult> Update([FromRoute] string userExternalId, [FromBody] UpdateTransactionRecordRequestDto request, CancellationToken ctoken)
+    public async Task<ActionResult> Update([FromBody] UpdateTransactionRecordRequestDto request, CancellationToken ctoken)
     {
-        ErrorOr<int> result = await _transactionRecordService.UpdateUserTransaction(userExternalId, request, ctoken);
+        ErrorOr<int> result = await _transactionRecordService.UpdateUserTransaction(request, ctoken);
 
         if (result.IsError)
             return result.Errors.MapToStatusCode();
@@ -90,9 +90,9 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordWrite)]
-    public async Task<ActionResult> UpdateAll([FromRoute] string userExternalId, [FromBody] List<UpdateTransactionRecordRequestDto> request, CancellationToken ctoken)
+    public async Task<ActionResult> UpdateAll([FromBody] List<UpdateTransactionRecordRequestDto> request, CancellationToken ctoken)
     {
-        ErrorOr<int> result = await _transactionRecordService.UpdateAllUserTransactions(userExternalId, request, ctoken);
+        ErrorOr<int> result = await _transactionRecordService.UpdateAllUserTransactions(request, ctoken);
 
         if (result.IsError)
             return result.Errors.MapToStatusCode();
@@ -106,9 +106,9 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordDelete)]
-    public async Task<ActionResult> Delete([FromRoute] string userExternalId, [FromRoute] string recordExternalId, CancellationToken ctoken)
+    public async Task<ActionResult> Delete([FromRoute] string recordExternalId, CancellationToken ctoken)
     {
-        ErrorOr<int> result = await _transactionRecordService.DeleteTransactionRecord(userExternalId, recordExternalId, ctoken);
+        ErrorOr<int> result = await _transactionRecordService.DeleteTransactionRecord(recordExternalId, ctoken);
 
         if (result.IsError)
             return result.Errors.MapToStatusCode();
