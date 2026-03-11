@@ -15,5 +15,7 @@ public interface ITransactionRecordCategoryRepository
     Task<int> UpdateUserTransactionCategory(TransactionRecordCategory category, CancellationToken ctoken = default);
     Task<int> UpdateAllUserTransactionCategories(List<TransactionRecordCategory> categories, CancellationToken ctoken = default);
     Task<IEnumerable<TransactionRecordCategory>> GetAllUserTransactionCategories(long userId, CancellationToken ctoken = default);
+
+    Task<IEnumerable<TransactionRecordCategory>> GetUserCategoriesByExternalIds(long userId, List<Guid> categoryExternalId, CancellationToken ctoken = default);
     #endregion
 }
