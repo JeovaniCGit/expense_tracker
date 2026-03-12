@@ -73,7 +73,6 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
 
     public async Task<int> UpdateAllUserTransactionCategories(List<TransactionRecordCategory> categories, CancellationToken ctoken = default)
     {
-        _context.TransactionRecordCategories.UpdateRange(categories);
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;
     }
@@ -91,5 +90,14 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
             })
             .ToListAsync(ctoken);
     }
+
+    public async Task<IEnumerable<TransactionRecordCategory>> GetUserCategoriesByExternalIds(long userId, List<Guid> categoryExternalIds, CancellationToken ctoken = default)
+    {
+        return await _context.TransactionRecordCategories
+            .Where(tc => tc.UserId == userId && categoryExternalIds
+            .Contains(tc.ExternalId))
+            .ToListAsync(ctoken);
+    }
+
     #endregion
 }

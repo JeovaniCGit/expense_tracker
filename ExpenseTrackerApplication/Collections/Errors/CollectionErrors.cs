@@ -10,4 +10,7 @@ public static class CollectionErrors
         Error.Validation("Collection.InvalidArgs", "Error, invalid arguments.");
     public static Error Unauthorized =>
         Error.Unauthorized("Collection.Unauthorized", "Error, unauthorized action.");
+
+    public static Error NotOwner =>
+    Error.Unauthorized("Collection.NotOwner", "Unauthorized.");
 }
