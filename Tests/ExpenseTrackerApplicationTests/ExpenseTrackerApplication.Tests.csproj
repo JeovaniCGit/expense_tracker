@@ -29,7 +29,6 @@
     <Folder Include="Categories\" />
     <Folder Include="Collections\" />
     <Folder Include="Emails\" />
-    <Folder Include="Records\" />
   </ItemGroup>
 
 </Project>

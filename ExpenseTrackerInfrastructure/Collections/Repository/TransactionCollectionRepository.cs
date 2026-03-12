@@ -43,6 +43,14 @@ internal class TransactionCollectionRepository : ITransactionCollectionRepositor
         return affected;
     }
 
+    public async Task<TransactionCollection?> GetUserCollectionByExternalId(long userId, Guid collectionExternalId, CancellationToken ctoken = default)
+    {
+        return await _context.Collections
+            .Where(c => c.UserId == userId 
+                && c.ExternalId ==  collectionExternalId)
+            .FirstOrDefaultAsync(ctoken);
+    }
+
     public async Task<IEnumerable<TransactionCollection>> GetAllUserCollections(long userId, DateTimeOffset? startDate, DateTimeOffset? endDate, CancellationToken ctoken = default)
     {
         IQueryable<TransactionCollection> query = _context.Collections
