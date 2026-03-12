@@ -25,7 +25,5 @@ internal sealed class PasswordHistoryConfiguration : BaseEntityConfiguration<Pas
 
         builder.Property(p => p.CreatedAt)
             .IsRequired();
-
-        
     }
 }

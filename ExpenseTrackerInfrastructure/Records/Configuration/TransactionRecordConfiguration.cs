@@ -27,6 +27,9 @@ internal sealed class TransactionRecordConfiguration : BaseEntityConfiguration<T
             .HasPrecision(18, 2)
             .IsRequired();
 
+        builder.HasIndex(p => new { p.TransactionValue, p.TransactionUserId, p.TransactionCategoryId })
+            .IsUnique();
+
         builder.Property(p => p.TransactionUserId)
             .IsRequired();
 
@@ -42,5 +45,8 @@ internal sealed class TransactionRecordConfiguration : BaseEntityConfiguration<T
             .HasForeignKey(fk => fk.TransactionCategoryId);
 
         builder.HasQueryFilter(tr => !tr.User.IsDeleted && !tr.IsDeleted);
+
+        builder.Property<uint>("xmin")
+            .IsRowVersion();
     }
 }

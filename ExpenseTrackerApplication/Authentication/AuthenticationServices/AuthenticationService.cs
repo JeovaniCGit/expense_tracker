@@ -2,7 +2,6 @@
 using ExpenseTracker.Application.Abstractions.DateTimeProvider;
 using ExpenseTracker.Application.Accounts.Contracts.Requests;
 using ExpenseTracker.Application.Accounts.Contracts.Responses;
-using ExpenseTracker.Application.Accounts.Errors;
 using ExpenseTracker.Application.Authentication.Contracts.Request;
 using ExpenseTracker.Application.Authentication.Contracts.Response;
 using ExpenseTracker.Application.Authentication.Errors;
@@ -39,6 +38,7 @@ public sealed class AuthenticationService : IAuthenticationService
     private readonly IDateProvider _dateProvider;
     private readonly IValidator<AddUserRequestDto> _addUserValidator;
     private readonly IValidator<LoginRequestDto> _loginValidator;
+    private readonly IValidator<ResetPassRequestDto> _resetPasswordValidator;
 
     public AuthenticationService(
         IUserRepository userRepository,
@@ -52,7 +52,8 @@ public sealed class AuthenticationService : IAuthenticationService
         ITokenService tokenService,
         IDateProvider dateProvider,
         IValidator<AddUserRequestDto> addUserValidator,
-        IValidator<LoginRequestDto> loginValidator
+        IValidator<LoginRequestDto> loginValidator,
+        IValidator<ResetPassRequestDto> resetPasswordValidator
         )
     {
         _userRepository = userRepository;
@@ -67,6 +68,7 @@ public sealed class AuthenticationService : IAuthenticationService
         _dateProvider = dateProvider;
         _addUserValidator = addUserValidator;
         _loginValidator = loginValidator;
+        _resetPasswordValidator = resetPasswordValidator;
     }
 
     public async Task<ErrorOr<bool>> ForgotPassword(string userEmail, CancellationToken ctoken = default)
@@ -136,6 +138,7 @@ public sealed class AuthenticationService : IAuthenticationService
 
         User addedRecord = await _userRepository.CreateUser(mappedRecord, ctoken);
         Token verificationToken = _tokenService.GenerateToken(TokenDescriptionEnum.EmailVerificationToken, addedRecord.Id, ctoken);
+        await _tokenRepository.AddToken(verificationToken, ctoken);
 
         ScheduleVerificationEmail(request.Email, request.Firstname, verificationToken.TokenValue, addedRecord.Id);
         EmailDelivery emailStatus = new EmailDelivery
@@ -144,6 +147,7 @@ public sealed class AuthenticationService : IAuthenticationService
             Status = EmailDeliveryStatus.Verification.ToString(),
             SentAt = null
         };
+
         _emailDeliveryRepository.Add(emailStatus);
 
         return new AddUserResponseDto
@@ -198,11 +202,8 @@ public sealed class AuthenticationService : IAuthenticationService
         if (principal.FindFirstValue("Typ") != TokenDescriptionEnum.RefreshToken.ToString())
             return AuthenticationErrors.Unauthorized;
 
-        Guid userId = Guid.Parse(principal.FindFirst("Sub")!.Value);
-        User? existingUser = await _userRepository.GetUserByExternalId(userId, ctoken);
-
-        if (existingUser is null)
-            return AuthenticationErrors.Unauthorized;
+        Guid userExternalId = Guid.Parse(principal.FindFirst("Sub")!.Value);
+        User? existingUser = await _userRepository.GetUserByExternalId(userExternalId, ctoken);
 
         List<string> userPermissions = existingUser.Role.RolePermissions
             .Select(rp => rp.Permission.PermissionName)
@@ -240,7 +241,9 @@ public sealed class AuthenticationService : IAuthenticationService
 
     public async Task<ErrorOr<bool>> ResetPassword(string emailToken, ResetPassRequestDto request, CancellationToken ctoken = default)
     {
-        if (string.IsNullOrEmpty(emailToken) || string.IsNullOrEmpty(request.Password))
+        await _resetPasswordValidator.ValidateAndThrowAsync(request, ctoken);
+
+        if (string.IsNullOrEmpty(emailToken))
             return AuthenticationErrors.InvalidArgs;
 
         Token? existingToken = await _tokenRepository.GetTokenByTokenValue(emailToken, ctoken);
@@ -249,7 +252,7 @@ public sealed class AuthenticationService : IAuthenticationService
             return AuthenticationErrors.InvalidArgs;
 
         if (existingToken.IsUsed)
-            return AuthenticationErrors.InvalidArgs;
+            return AuthenticationErrors.Forbidden;
 
         string requestHashedPass = _passwordHasher.Hash(request.Password);
 
@@ -266,7 +269,7 @@ public sealed class AuthenticationService : IAuthenticationService
             CreatedAt = _dateProvider.Now
         };
 
-        await _passwordHistoryRepository.Add(newPasswordHistory);
+        await _passwordHistoryRepository.Add(newPasswordHistory, ctoken);
         existingToken.IsUsed = true;
         existingToken.UsedAt = _dateProvider.Now;
         existingUser.PasswordLastUpdated = _dateProvider.Now;

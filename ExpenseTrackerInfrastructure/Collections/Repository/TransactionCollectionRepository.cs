@@ -33,14 +33,23 @@ internal class TransactionCollectionRepository : ITransactionCollectionRepositor
 
     public async Task<TransactionCollection?> GetCollectionByExternalId(Guid externalId, CancellationToken ctoken = default)
     {
-        return await _context.Collections.AsNoTracking().Where(c => c.ExternalId == externalId).FirstOrDefaultAsync();
+        return await _context.Collections
+            .Where(c => c.ExternalId == externalId)
+            .FirstOrDefaultAsync();
     }
 
-    public async Task<int> UpdateCollection(TransactionCollection transactionCollection, CancellationToken ctoken = default)
+    public async Task<int> SaveChanges(CancellationToken ctoken = default)
     {
-        _context.Collections.Update(transactionCollection);
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;
+    }
+
+    public async Task<TransactionCollection?> GetUserCollectionByExternalId(long userId, Guid collectionExternalId, CancellationToken ctoken = default)
+    {
+        return await _context.Collections
+            .Where(c => c.UserId == userId 
+                && c.ExternalId ==  collectionExternalId)
+            .FirstOrDefaultAsync(ctoken);
     }
 
     public async Task<IEnumerable<TransactionCollection>> GetAllUserCollections(long userId, DateTimeOffset? startDate, DateTimeOffset? endDate, CancellationToken ctoken = default)

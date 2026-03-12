@@ -1,12 +1,17 @@
-﻿using ExpenseTracker.API.Logging.Middleware;
+﻿using Asp.Versioning;
+using ExpenseTracker.API.Logging.Middleware;
+using ExpenseTracker.API.Swagger;
 using ExpenseTracker.API.Validation.Middleware;
 using ExpenseTracker.Application.Abstractions.RateLimitingConstants;
 using ExpenseTracker.Application.Authorization.Perms.Seeds;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -21,6 +26,9 @@ public static class ApiSetupConfiguration
         AddAuthenticationConfiguration(services, configuration);
         AddRateLimiting(services);
         AddCors(services, configuration);
+        AddRequestTimeout(services);
+        AddApiVersioning(services);
+        services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
 
         return services;
     }
@@ -154,6 +162,43 @@ public static class ApiSetupConfiguration
                     }
                 );
             });
+        });
+
+        return services;
+    }
+
+    public static IServiceCollection AddRequestTimeout(this IServiceCollection services)
+    {
+        services.AddRequestTimeouts(options =>
+        {
+            options.AddPolicy("FastOperation", new RequestTimeoutPolicy
+            {
+                Timeout = TimeSpan.FromSeconds(2)
+            });
+
+            options.AddPolicy("ExternalCall", new RequestTimeoutPolicy
+            {
+                Timeout = TimeSpan.FromSeconds(8)
+            });
+        });
+
+        return services;
+    }
+
+    public static IServiceCollection AddApiVersioning(this IServiceCollection services)
+    {
+        services.AddApiVersioning(opts =>
+        {
+            opts.DefaultApiVersion = new Asp.Versioning.ApiVersion(1);
+            opts.ReportApiVersions = true;
+            opts.AssumeDefaultVersionWhenUnspecified = true;
+            opts.ApiVersionReader = new UrlSegmentApiVersionReader();
+        })
+        .AddMvc()
+        .AddApiExplorer(opts =>
+        {
+            opts.GroupNameFormat = "'v'V";
+            opts.SubstituteApiVersionInUrl = true;
         });
 
         return services;

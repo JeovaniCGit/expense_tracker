@@ -19,6 +19,7 @@ using ExpenseTracker.Domain.Authorization.Tokens.Entity;
 using ExpenseTracker.Domain.Authorization.Tokens.Repository;
 using ExpenseTracker.Domain.Authorization.UserRoles.Entity;
 using ExpenseTracker.Domain.Email.Repository;
+using FluentAssertions;
 using FluentValidation;
 using Hangfire;
 using Moq;
@@ -39,6 +40,7 @@ public class LoginUseCaseTests
     private readonly Mock<IDateProvider> _dateProviderMock;
     private readonly Mock<IValidator<AddUserRequestDto>> _addUserValidatorMock;
     private readonly Mock<IValidator<LoginRequestDto>> _loginValidatorMock;
+    private readonly Mock<IValidator<ResetPassRequestDto>> _resetPasswordValidatorMock;
     private readonly AuthenticationService _sut;
 
     public LoginUseCaseTests()
@@ -55,6 +57,7 @@ public class LoginUseCaseTests
         _dateProviderMock = new Mock<IDateProvider>();
         _addUserValidatorMock = new Mock<IValidator<AddUserRequestDto>>();
         _loginValidatorMock = new Mock<IValidator<LoginRequestDto>>();
+        _resetPasswordValidatorMock = new Mock<IValidator<ResetPassRequestDto>>();
         _sut = new AuthenticationService(
             _userRepositoryMock.Object,
             _tokenRepositoryMock.Object,
@@ -67,7 +70,8 @@ public class LoginUseCaseTests
             _tokenServiceMock.Object,
             _dateProviderMock.Object,
             _addUserValidatorMock.Object,
-            _loginValidatorMock.Object
+            _loginValidatorMock.Object,
+            _resetPasswordValidatorMock.Object
         );
     }
 
@@ -83,21 +87,27 @@ public class LoginUseCaseTests
 
         string hashedPassword = "HashedPassword";
 
-        _userRepositoryMock.Setup(repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User?)null);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByEmail(
+            It.IsAny<string>(), 
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync((User?)null);
 
-        _passwordHasherMock.Setup(hasher => hasher.Hash(It.IsAny<string>()))
-            .Returns(hashedPassword);
+        _passwordHasherMock.Setup(
+            hasher => hasher.Hash(It.IsAny<string>()))
+        .Returns(hashedPassword);
 
         // Act
         var result = await _sut.Login(request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.InvalidArgs, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().Be(AuthenticationErrors.InvalidArgs);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()), 
+            repo => repo.GetUserByEmail(
+                request.Email, 
+                It.IsAny<CancellationToken>()), 
             Times.Once
         );
     }
@@ -112,6 +122,8 @@ public class LoginUseCaseTests
             Password = "Password123!"
         };
 
+        string fakeHashedPassword = "some-fake-pass";
+
         User existingUser = new User
         {
             Firstname = "John",
@@ -121,21 +133,27 @@ public class LoginUseCaseTests
             RoleId = (long)UserRoleEnum.RegularUser
         };
 
-        _userRepositoryMock.Setup(repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByEmail(
+                It.IsAny<string>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
-        _passwordHasherMock.Setup(hasher => hasher.Hash(It.IsAny<string>()))
-            .Returns(request.Password);
+        _passwordHasherMock.Setup(
+            hasher => hasher.Hash(It.IsAny<string>()))
+        .Returns(fakeHashedPassword);
 
         // Act
         var result = await _sut.Login(request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.InvalidArgs, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().Be(AuthenticationErrors.InvalidArgs);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByEmail(
+                request.Email, 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -192,42 +210,60 @@ public class LoginUseCaseTests
             }
         };
 
-        _userRepositoryMock.Setup(repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        List<string>? capturedUserPerms = null;
+        Token? capturedToken = null;
 
-        _passwordHasherMock.Setup(hasher => hasher.Hash(request.Password))
-            .Returns(existingUser.Password);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByEmail(
+                It.IsAny<string>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
+
+        _passwordHasherMock.Setup(
+            hasher => hasher.Hash(request.Password))
+        .Returns(existingUser.Password);
 
         _tokenGeneratorMock.Setup(
             service => service.GenerateAccessToken(
-                existingUser.ExternalId,
+                It.IsAny<Guid>(),
                 It.IsAny<List<string>>(),
-                 It.IsAny<string>(), 
-                It.IsAny<CancellationToken>())
-        ).Returns("someAccessToken");
+                It.IsAny<string>(), 
+                It.IsAny<CancellationToken>()))
+        .Callback<Guid, List<string>, string, CancellationToken>((_, perms, _, _) => capturedUserPerms = perms)
+        .Returns("someAccessToken");
 
         _tokenGeneratorMock.Setup(
             service => service.GenerateRefreshToken(
-                existingUser.ExternalId,
+                It.IsAny<Guid>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>())
-        ).Returns("someRefreshToken");
+                It.IsAny<CancellationToken>()))
+        .Returns("someRefreshToken");
 
         _tokenServiceMock.Setup(service => service.AddToken(
             It.IsAny<Token>(),
-            It.IsAny<CancellationToken>())
-        ).ReturnsAsync(new Token());
+            It.IsAny<CancellationToken>()))
+        .Callback<Token, CancellationToken>((token, _) => capturedToken = token)
+        .ReturnsAsync(new Token());
 
         // Act
         var result = await _sut.Login(request, CancellationToken.None);
 
         // Assert
-        Assert.False(result.IsError);
-        Assert.Equal("someAccessToken", result.Value.AccessToken);
-        Assert.Equal("someRefreshToken", result.Value.RefreshToken);
+        result.IsError.Should().BeFalse();
+        result.Value.RefreshToken.Should().Be("someRefreshToken");
+        result.Value.AccessToken.Should().Be("someAccessToken");
+
+        capturedUserPerms.Should().HaveCount(2);
+        capturedUserPerms.Should().OnlyContain(p => existingUser.Role.RolePermissions.Any(rp => rp.Permission.PermissionName == p));
+
+        capturedToken.TokenUserId.Should().Be(existingUser.Id);
+        capturedToken.TokenTypeId.Should().Be((long)TokenDescriptionEnum.RefreshToken);
+        capturedToken.TokenValue.Should().Be("someRefreshToken");
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByEmail(
+                request.Email, 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 

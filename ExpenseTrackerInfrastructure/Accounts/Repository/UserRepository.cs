@@ -29,7 +29,11 @@ internal sealed class UserRepository : IUserRepository
 
     public async Task<User?> GetUserById(long userId, CancellationToken ctoken = default)
     {
-        return await _context.Users.AsNoTracking().Include(u => u.Transactions).FirstOrDefaultAsync(u => u.Id == userId, ctoken);
+        return await _context.Users
+            .AsNoTracking()
+            .Include(u => u.Transactions)
+            .ThenInclude(t => t.TransactionCategory)
+            .FirstOrDefaultAsync(u => u.Id == userId, ctoken);
     }
 
     public async Task<User?> GetUserByEmail(string email, CancellationToken ctoken = default)
@@ -44,13 +48,13 @@ internal sealed class UserRepository : IUserRepository
 
     public async Task<User?> GetUserByExternalId(Guid id, CancellationToken ctoken = default)
     {
-        return await _context.Users.AsNoTracking().Include(u => u.Collections).FirstOrDefaultAsync(u => u.ExternalId == id, ctoken);
+        return await _context.Users
+            .Include(u => u.PasswordHistory)
+            .FirstOrDefaultAsync(u => u.ExternalId == id, ctoken);
     }
 
     public async Task<int> UpdateUser(User user, CancellationToken ctoken = default)
     {
-        _context.Users.Update(user);
-
         if (string.IsNullOrEmpty(user.Password))
             _context.Entry(user).Property(u => u.Password).IsModified = false;
 

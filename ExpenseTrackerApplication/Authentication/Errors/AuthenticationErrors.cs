@@ -15,4 +15,7 @@ public static class AuthenticationErrors
 
     public static Error InvalidPassword =>
         Error.Conflict("User.InvalidPassword", "Password used recently.");
+
+    public static Error Forbidden =>
+        Error.Forbidden("User.Forbidden", "The requested action is not allowed.");
 }

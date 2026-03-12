@@ -34,5 +34,8 @@ public sealed class EmailDeliveryConfiguration : BaseEntityConfiguration<EmailDe
             .WithOne()
             .HasForeignKey<EmailDelivery>(f => f.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property<uint>("xmin")
+            .IsRowVersion();
     }
 }
