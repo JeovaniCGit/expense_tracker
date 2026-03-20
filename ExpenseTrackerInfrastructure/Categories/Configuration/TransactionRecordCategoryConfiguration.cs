@@ -34,6 +34,9 @@ internal sealed class TransactionRecordCategoryConfiguration : BaseEntityConfigu
             .WithMany()
             .HasForeignKey(trc => trc.UserId);
 
+        builder.HasIndex(p => new { p.UserId, p.CategoryName })
+           .IsUnique();
+
         builder.HasQueryFilter(trc => !trc.User.IsDeleted && !trc.IsDeleted);
     }
 }

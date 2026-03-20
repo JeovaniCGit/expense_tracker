@@ -11,4 +11,7 @@ public sealed class TransactionRecordCategoryErrors
 
     public static Error InvalidArgs =>
         Error.Validation("TransactionCategory.InvalidArgs", "Error, invalid arguments.");
+
+    public static Error DuplicatedEntry =>
+        Error.Conflict("TransactionCategory.DuplicatedEntry", "Error, category already exists.");
 }

@@ -14,4 +14,7 @@ public sealed class TransactionRecordErrors
 
     public static Error Unauthorized =>
         Error.Unauthorized("TransactionRecord.Unauthorized", "Error, unauthorized action.");
+
+    public static Error DuplicatedEntry =>
+        Error.Conflict("TransactionRecord.DuplicatedEntry", "Error, record already exists.");
 }

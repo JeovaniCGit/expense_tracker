@@ -23,4 +23,7 @@ public static class UserErrors
 
     public static Error Forbidden =>
        Error.Forbidden("User.Forbidden", "Error, operation not allowed.");
+
+    public static Error NotOwner =>
+       Error.Forbidden("User.NotOwner", "Error, user does not own the requested resource.");
 }

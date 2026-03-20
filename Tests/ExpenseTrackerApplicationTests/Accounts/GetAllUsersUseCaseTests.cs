@@ -1,11 +1,11 @@
 ﻿using ExpenseTracker.Application.Abstractions.DateTimeProvider;
 using ExpenseTracker.Application.Accounts.Contracts.Requests;
-using ExpenseTracker.Application.Accounts.Contracts.Responses;
 using ExpenseTracker.Application.Accounts.Services.UserServices;
 using ExpenseTracker.Application.Authorization.BCryptLib;
 using ExpenseTracker.Application.Authorization.UserRoles.Enums;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
+using FluentAssertions;
 using FluentValidation;
 using Moq;
 
@@ -77,20 +77,11 @@ public class GetAllUsersUseCaseTests
         var result = await _sut.GetAllUsers(1, 10, CancellationToken.None);
 
         // Assert
-        Assert.Collection(result,
-            user =>
-            {
-                Assert.Equal("John", user.Firstname);
-                Assert.Equal("Doe", user.Lastname);
-                Assert.Equal("john@doe.com", user.Email);
-            },
-            user =>
-            {
-                Assert.Equal("Jane", user.Firstname);
-                Assert.Equal("Smith", user.Lastname);
-                Assert.Equal("jane@smith.com", user.Email);
-            }
-        );
+        result.Should().HaveCount(2);
+        result.Should().OnlyContain(u => expectedUsers.Any(item => item.ExternalId == u.UserExternalId));
+        result.Should().OnlyContain(u => expectedUsers.Any(item => item.Firstname == u.Firstname));
+        result.Should().OnlyContain(u => expectedUsers.Any(item => item.Lastname == u.Lastname));
+        result.Should().OnlyContain(u => expectedUsers.Any(item => item.Email == u.Email));
 
         _userRepositoryMock.Verify(
             repo => repo.GetAllUsers(1, 10, It.IsAny<CancellationToken>()),

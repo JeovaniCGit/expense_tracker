@@ -5,17 +5,14 @@ using ExpenseTracker.Application.Authentication.Contracts.Request;
 using ExpenseTracker.Application.Authentication.Errors;
 using ExpenseTracker.Application.Authentication.JwtLib;
 using ExpenseTracker.Application.Authorization.BCryptLib;
-using ExpenseTracker.Application.Authorization.Perms.Attributes;
 using ExpenseTracker.Application.Authorization.Tokens.Services;
 using ExpenseTracker.Application.Authorization.UserRoles.Enums;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
-using ExpenseTracker.Domain.Authorization.Perms.Entity;
-using ExpenseTracker.Domain.Authorization.RolePerms.Entity;
 using ExpenseTracker.Domain.Authorization.Tokens.Entity;
 using ExpenseTracker.Domain.Authorization.Tokens.Repository;
-using ExpenseTracker.Domain.Authorization.UserRoles.Entity;
 using ExpenseTracker.Domain.Email.Repository;
+using FluentAssertions;
 using FluentValidation;
 using Hangfire;
 using Moq;
@@ -36,6 +33,7 @@ public class ResetPasswordUseCaseTests
     private readonly Mock<IDateProvider> _dateProviderMock;
     private readonly Mock<IValidator<AddUserRequestDto>> _addUserValidatorMock;
     private readonly Mock<IValidator<LoginRequestDto>> _loginValidatorMock;
+    private readonly Mock<IValidator<ResetPassRequestDto>> _resetPasswordValidatorMock;
     private readonly AuthenticationService _sut;
 
     public ResetPasswordUseCaseTests()
@@ -52,6 +50,7 @@ public class ResetPasswordUseCaseTests
         _dateProviderMock = new Mock<IDateProvider>();
         _addUserValidatorMock = new Mock<IValidator<AddUserRequestDto>>();
         _loginValidatorMock = new Mock<IValidator<LoginRequestDto>>();
+        _resetPasswordValidatorMock = new Mock<IValidator<ResetPassRequestDto>>();
         _sut = new AuthenticationService(
             _userRepositoryMock.Object,
             _tokenRepositoryMock.Object,
@@ -64,26 +63,27 @@ public class ResetPasswordUseCaseTests
             _tokenServiceMock.Object,
             _dateProviderMock.Object,
             _addUserValidatorMock.Object,
-            _loginValidatorMock.Object
+            _loginValidatorMock.Object,
+            _resetPasswordValidatorMock.Object
         );
     }
 
     [Fact]
-    public async Task ResetPassword_WhenEmailTokenOrRequestPasswordIsNullOrEmpty_ShouldReturnInvalidArgsError()
+    public async Task ResetPassword_WhenEmailTokenIsNullOrEmpty_ShouldReturnInvalidArgsError()
     {
         // Arrange
         string requestToken = string.Empty;
         ResetPassRequestDto request = new ResetPassRequestDto
         {
-            Password = string.Empty
+            Password = "Some-password"
         };
 
         // Act
         var result = await _sut.ResetPassword(requestToken, request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.InvalidArgs, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().BeEquivalentTo(AuthenticationErrors.InvalidArgs);
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class ResetPasswordUseCaseTests
         string requestToken = "some-generated-token";
         ResetPassRequestDto request = new ResetPassRequestDto
         {
-            Password = "Password123!"
+            Password = "Some-Password"
         };
 
         Token fakeToken = new Token
@@ -101,24 +101,29 @@ public class ResetPasswordUseCaseTests
             TokenValue = "some-fake-token"
         };
 
-        _tokenRepositoryMock.Setup(repo => repo.GetTokenByTokenValue(requestToken, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(fakeToken);
+        _tokenRepositoryMock.Setup(
+            repo => repo.GetTokenByTokenValue(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(fakeToken);
 
         // Act
         var result = await _sut.ResetPassword(requestToken, request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.InvalidArgs, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().BeEquivalentTo(AuthenticationErrors.InvalidArgs);
 
         _tokenRepositoryMock.Verify(
-            repo => repo.GetTokenByTokenValue(requestToken, It.IsAny<CancellationToken>()), 
+            repo => repo.GetTokenByTokenValue(
+                requestToken,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
 
     [Fact]
-    public async Task ResetPassword_WhenRequestTokenIsAlreadyUsed_ShouldReturnInvalidArgsError()
+    public async Task ResetPassword_WhenRequestTokenIsAlreadyUsed_ShouldReturnForbiddenError()
     {
         // Arrange
         string requestToken = "some-generated-token";
@@ -129,22 +134,27 @@ public class ResetPasswordUseCaseTests
 
         Token existingToken = new Token
         {
-            TokenValue = "some-generated-token",
+            TokenValue = requestToken,
             IsUsed = true
         };
 
-        _tokenRepositoryMock.Setup(repo => repo.GetTokenByTokenValue(requestToken, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingToken);
+        _tokenRepositoryMock.Setup(
+            repo => repo.GetTokenByTokenValue(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingToken);
 
         // Act
         var result = await _sut.ResetPassword(requestToken, request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.InvalidArgs, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().BeEquivalentTo(AuthenticationErrors.Forbidden);
 
         _tokenRepositoryMock.Verify(
-            repo => repo.GetTokenByTokenValue(requestToken, It.IsAny<CancellationToken>()),
+            repo => repo.GetTokenByTokenValue(
+                requestToken,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -177,73 +187,57 @@ public class ResetPasswordUseCaseTests
             RoleId = (long)UserRoleEnum.RegularUser,
             ExternalId = Guid.NewGuid()
         };
-        existingUser.Role = new UserRole
-        {
-            Id = existingUser.RoleId,
-            UserRoleName = UserRoleEnum.RegularUser.ToString(),
-            RolePermissions = new List<RolePermission>
-            {
-                new RolePermission
-                {
-                    RoleId = existingUser.RoleId,
-                    PermissionId = 1,
-                    ExternalId = Guid.NewGuid(),
-                    Permission = new Permission
-                    {
-                        Id = 1,
-                        PermissionName = PermissionNames.UserRead
-                    }
-                },
-
-                new RolePermission
-                {
-                    RoleId = existingUser.RoleId,
-                    PermissionId = 2,
-                    ExternalId = Guid.NewGuid(),
-                    Permission = new Permission
-                    {
-                        Id = 2,
-                        PermissionName = PermissionNames.UserWrite
-                    }
-                }
-            }
-        };
         existingUser.PasswordHistory = new PasswordHistory
         {
             PasswordHash = "hashedPassword"
         };
 
-        _tokenRepositoryMock.Setup(repo => repo.GetTokenByTokenValue(requestToken, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingToken);
+        _tokenRepositoryMock.Setup(
+            repo => repo.GetTokenByTokenValue(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingToken);
 
-        _passwordHasherMock.Setup(hasher => hasher.Hash(It.IsAny<string>()))
+        _passwordHasherMock.Setup(hasher => hasher.Hash(
+            It.IsAny<string>()))
             .Returns(hashedPassword);
 
-        _userRepositoryMock.Setup(repo => repo.GetUserById(existingToken.TokenUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _userRepositoryMock.Setup(repo => repo.GetUserById(
+            It.IsAny<long>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
-        _passwordHistoryRepositoryMock.Setup(repo => repo.GetByPasswordHash(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser.PasswordHistory);
+        _passwordHistoryRepositoryMock.Setup(
+            repo => repo.GetByPasswordHash(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser.PasswordHistory);
 
         // Act
         var result = await _sut.ResetPassword(requestToken, request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.InvalidPassword, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().BeEquivalentTo(AuthenticationErrors.InvalidPassword);
 
         _tokenRepositoryMock.Verify(
-            repo => repo.GetTokenByTokenValue(requestToken, It.IsAny<CancellationToken>()),
+            repo => repo.GetTokenByTokenValue(
+                requestToken,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserById(existingToken.TokenUserId, It.IsAny<CancellationToken>()), 
+            repo => repo.GetUserById(
+                existingToken.TokenUserId,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _passwordHistoryRepositoryMock.Verify(
-            repo => repo.GetByPasswordHash(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            repo => repo.GetByPasswordHash(
+                hashedPassword,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -254,6 +248,8 @@ public class ResetPasswordUseCaseTests
         // Arrange
         string requestToken = "some-generated-token";
         string hashedPassword = "newHashedPassword";
+        var fixedCreatedAtTimestamp = new DateTimeOffset(2024, 1, 15, 8, 0, 0, TimeSpan.Zero);
+
         ResetPassRequestDto request = new ResetPassRequestDto
         {
             Password = "Password123!"
@@ -276,97 +272,101 @@ public class ResetPasswordUseCaseTests
             RoleId = (long)UserRoleEnum.RegularUser,
             ExternalId = Guid.NewGuid()
         };
-        existingUser.Role = new UserRole
-        {
-            Id = existingUser.RoleId,
-            UserRoleName = UserRoleEnum.RegularUser.ToString(),
-            RolePermissions = new List<RolePermission>
-            {
-                new RolePermission
-                {
-                    RoleId = existingUser.RoleId,
-                    PermissionId = 1,
-                    ExternalId = Guid.NewGuid(),
-                    Permission = new Permission
-                    {
-                        Id = 1,
-                        PermissionName = PermissionNames.UserRead
-                    }
-                },
 
-                new RolePermission
-                {
-                    RoleId = existingUser.RoleId,
-                    PermissionId = 2,
-                    ExternalId = Guid.NewGuid(),
-                    Permission = new Permission
-                    {
-                        Id = 2,
-                        PermissionName = PermissionNames.UserWrite
-                    }
-                }
-            }
-        };
-        existingUser.PasswordHistory = new PasswordHistory
+        PasswordHistory passHistory = new PasswordHistory
         {
-            PasswordHash = "hashedPassword"
+            UserId = existingUser.Id,
+            PasswordHash = hashedPassword,
+            CreatedAt = fixedCreatedAtTimestamp
         };
 
-        _tokenRepositoryMock.Setup(repo => repo.GetTokenByTokenValue(requestToken, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingToken);
+        PasswordHistory? capturedHistory = null;
 
-        _passwordHasherMock.Setup(hasher => hasher.Hash(It.IsAny<string>()))
-            .Returns(hashedPassword);
+        _tokenRepositoryMock.Setup(
+            repo => repo.GetTokenByTokenValue(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingToken);
 
-        _userRepositoryMock.Setup(repo => repo.GetUserById(existingToken.TokenUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _passwordHasherMock.Setup(
+            hasher => hasher.Hash(It.IsAny<string>()))
+        .Returns(hashedPassword);
 
-        _passwordHistoryRepositoryMock.Setup(repo => repo.GetByPasswordHash(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PasswordHistory?)null);
+        _userRepositoryMock.Setup(repo => repo.GetUserById(
+            It.IsAny<long>(),
+            It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
-        _passwordHistoryRepositoryMock.Setup(repo => repo.Add(It.IsAny<PasswordHistory>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(It.IsAny<int>());
+        _passwordHistoryRepositoryMock.Setup(
+            repo => repo.GetByPasswordHash(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync((PasswordHistory?)null);
 
-        _userRepositoryMock.Setup(repo => repo.ApplyBehaviorChanges(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(It.IsAny<bool>());
+        _passwordHistoryRepositoryMock.Setup(
+            repo => repo.Add(
+                It.IsAny<PasswordHistory>(),
+                It.IsAny<CancellationToken>()))
+        .Callback<PasswordHistory, CancellationToken>((history, _) => capturedHistory = history)
+        .ReturnsAsync(1);
 
-        _tokenRepositoryMock.Setup(repo => repo.ApplyBehaviorChanges(It.IsAny<CancellationToken>()))
-           .ReturnsAsync(It.IsAny<bool>());
+        _userRepositoryMock.Setup(
+            repo => repo.ApplyBehaviorChanges(
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(It.IsAny<bool>());
+
+        _tokenRepositoryMock.Setup(
+            repo => repo.ApplyBehaviorChanges(
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(It.IsAny<bool>());
 
         // Act
         var result = await _sut.ResetPassword(requestToken, request, CancellationToken.None);
 
         // Assert
-        Assert.False(result.IsError);
-        Assert.Equal(typeof(bool), result.Value.GetType());
+        result.IsError.Should().BeFalse();
+        result.Value.Should().BeTrue();
+
+        capturedHistory.UserId.Should().Be(existingUser.Id);
+        capturedHistory.PasswordHash.Should().Be(hashedPassword);
 
         _tokenRepositoryMock.Verify(
-            repo => repo.GetTokenByTokenValue(requestToken, It.IsAny<CancellationToken>()),
+            repo => repo.GetTokenByTokenValue(
+                requestToken,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserById(existingToken.TokenUserId, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserById(
+                existingToken.TokenUserId,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _passwordHistoryRepositoryMock.Verify(
-            repo => repo.GetByPasswordHash(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            repo => repo.GetByPasswordHash(
+                hashedPassword,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _passwordHistoryRepositoryMock.Verify(
-            repo => repo.Add(It.IsAny<PasswordHistory>(), It.IsAny<CancellationToken>()),
+            repo => repo.Add(
+                It.IsAny<PasswordHistory>(),
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _userRepositoryMock.Verify(
-            repo => repo.ApplyBehaviorChanges(It.IsAny<CancellationToken>()),
+            repo => repo.ApplyBehaviorChanges(
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _tokenRepositoryMock.Verify(
-            repo => repo.ApplyBehaviorChanges(It.IsAny<CancellationToken>()),
+            repo => repo.ApplyBehaviorChanges(
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
