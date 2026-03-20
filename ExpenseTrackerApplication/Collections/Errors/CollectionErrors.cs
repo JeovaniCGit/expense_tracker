@@ -8,9 +8,13 @@ public static class CollectionErrors
 
     public static Error InvalidArgs =>
         Error.Validation("Collection.InvalidArgs", "Error, invalid arguments.");
+
     public static Error Unauthorized =>
         Error.Unauthorized("Collection.Unauthorized", "Error, unauthorized action.");
 
     public static Error NotOwner =>
     Error.Unauthorized("Collection.NotOwner", "Unauthorized.");
+
+    public static Error DuplicatedEntry =>
+   Error.Conflict("Collection.DuplicatedEntry", "Error, collection already exists.");
 }

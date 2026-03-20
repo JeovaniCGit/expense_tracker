@@ -14,9 +14,7 @@ public interface ITransactionRecordRepository
 
     Task<IEnumerable<TransactionRecord>> GetAllUserTransactionsByCollection(long userId, long collectionId, CancellationToken ctoken = default);
 
-    Task<int> UpdateTransaction(TransactionRecord record, CancellationToken ctoken = default);
-
-    Task<int> UpdateAllUserTransactions(List<TransactionRecord> records, CancellationToken ctoken = default);
+    Task<int> SaveChanges(CancellationToken ctoken = default);
 
     Task<IEnumerable<TransactionRecord>> GetUserTransactionsByExternalId(long userId, List<Guid> recordExternalId, CancellationToken ctoken = default);
 

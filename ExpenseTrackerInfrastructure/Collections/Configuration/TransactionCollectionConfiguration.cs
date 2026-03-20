@@ -40,6 +40,9 @@ internal sealed class TransactionCollectionConfiguration : BaseEntityConfigurati
 
         builder.HasIndex(p => new { p.UserId, p.StartDate });
 
+        builder.HasIndex(p => new { p.UserId, p.StartDate, p.EndDate, p.Description })
+            .IsUnique();
+
         builder.Property(p => p.EndDate)
             .IsRequired();
 

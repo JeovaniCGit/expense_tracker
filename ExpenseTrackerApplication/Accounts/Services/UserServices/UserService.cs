@@ -1,5 +1,6 @@
 ﻿using ErrorOr;
 using ExpenseTracker.Application.Abstractions.DateTimeProvider;
+using ExpenseTracker.Application.Abstractions.DbExceptionHandler;
 using ExpenseTracker.Application.Accounts.Contracts.Requests;
 using ExpenseTracker.Application.Accounts.Contracts.Responses;
 using ExpenseTracker.Application.Accounts.Errors;
@@ -9,6 +10,7 @@ using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace ExpenseTracker.Application.Accounts.Services.UserServices;
 
@@ -45,45 +47,44 @@ public sealed class UserService : IUserService
     {
         await _addUserValidator.ValidateAndThrowAsync(request, ctoken);
 
-        ErrorOr<User> existingUser = await GetUserByEmail(request.Email, ctoken);
+        try
+        {
+            User newUser = new User
+            {
+                Firstname = request.Firstname,
+                Lastname = request.Lastname,
+                Email = request.Email,
+                Password = _passwordHasher.Hash(request.Password),
+                RoleId = (long)UserRoleEnum.RegularUser
+            };
 
-        if (!existingUser.IsError)
+            User createdUser = await _userRepository.CreateUser(newUser, ctoken);
+
+            return new AddUserResponseDto
+            {
+                ExternalId = createdUser.ExternalId,
+                Firstname = createdUser.Firstname,
+                Lastname = createdUser.Lastname,
+                CreatedAt = createdUser.CreatedAt
+            };
+
+        } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        {
             return UserErrors.DuplicatedEntry;
-
-        User newUser = new User
-        {
-            Firstname = request.Firstname,
-            Lastname = request.Lastname,
-            Email = request.Email,
-            Password = _passwordHasher.Hash(request.Password),
-            RoleId = (int)UserRoleEnum.RegularUser
-        };
-
-        User createdUser = await _userRepository.CreateUser(newUser, ctoken);
-
-        return new AddUserResponseDto
-        {
-            ExternalId = createdUser.ExternalId,
-            Firstname = createdUser.Firstname,
-            Lastname = createdUser.Lastname,
-            CreatedAt = createdUser.CreatedAt
-        };
+        }
     }
 
     public async Task<ErrorOr<int>> DeleteUser(string externalId, CancellationToken ctoken = default)
     {
-        long requestUserId = _currentUserService.UserId;
-        User? requestUser = await _userRepository.GetUserById(requestUserId, ctoken);
-
-        if (requestUser is null)
-            return UserErrors.Unauthorized;
+        Guid currentUserExternalId = _currentUserService.UserExternalId;
+        User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
 
         User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(externalId), ctoken);
         if (existingUser is null)
             return UserErrors.InvalidArgs;
 
-        if (requestUser.RoleId != (int)UserRoleEnum.Admin 
-            && requestUser!.ExternalId != Guid.Parse(externalId))
+        if (currentUser.RoleId != (int)UserRoleEnum.Admin 
+            && currentUser!.ExternalId != Guid.Parse(externalId))
             return UserErrors.Forbidden;
 
         return await _userRepository.DeleteUser(existingUser, ctoken);
@@ -102,12 +103,11 @@ public sealed class UserService : IUserService
         });
     }
 
-    public async Task<ErrorOr<GetUserResponseDto>> GetUserByExternalId(string externalId, CancellationToken ctoken = default)
+    public async Task<ErrorOr<GetUserResponseDto>> GetUserByExternalId(CancellationToken ctoken = default)
     {
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(externalId), ctoken);
+        Guid currentUserExternalId = _currentUserService.UserExternalId;
 
-        if (existingUser is null)
-            return UserErrors.NotFound;
+        User? existingUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
 
         return new GetUserResponseDto
         {
@@ -122,10 +122,16 @@ public sealed class UserService : IUserService
     {
         await _updateUserValidator.ValidateAndThrowAsync(request, ctoken);
 
+        Guid currentUserExternalId = _currentUserService.UserExternalId;
+        User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
+
         User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(request.UserExternalId), ctoken);
 
         if (existingUser is null)
             return UserErrors.NotFound;
+
+        if (currentUserExternalId != existingUser.ExternalId)
+            return UserErrors.Forbidden;
 
         if (!string.IsNullOrEmpty(request.Password))
         {
@@ -135,29 +141,41 @@ public sealed class UserService : IUserService
             if (passwordHistory is not null)
                 return UserErrors.InvalidPassword;
         }
-        
-        User updatedUserData = new User
-        {
-            Firstname = request.Firstname ?? existingUser.Firstname,
-            Lastname = request.Lastname ?? existingUser.Lastname,
-            Email = request.Email ?? existingUser.Email,
-            Password = request.Password is null ? string.Empty : _passwordHasher.Hash(request.Password)
-        };
 
-        if (!string.IsNullOrEmpty(updatedUserData.Password))
+        existingUser.Firstname = request.Firstname ?? existingUser.Firstname;
+        existingUser.Lastname = request.Lastname ?? existingUser.Lastname;
+        existingUser.Email = request.Email ?? existingUser.Email;
+        existingUser.Password = request.Password is null ? string.Empty : _passwordHasher.Hash(request.Password);
+
+        if (!string.IsNullOrEmpty(request.Password))
         {
             PasswordHistory newPasswordHistory = new PasswordHistory
             {
                 UserId = existingUser.Id,
-                PasswordHash = updatedUserData.Password,
+                PasswordHash = existingUser.Password,
                 CreatedAt = _dateProvider.Now
             };
 
-            await _passwordHistoryRepository.Add(newPasswordHistory, ctoken);
-            existingUser.PasswordLastUpdated = _dateProvider.Now;
+            try
+            {
+                await _passwordHistoryRepository.Add(newPasswordHistory, ctoken);
+                existingUser.PasswordLastUpdated = _dateProvider.Now;
+
+                return await _userRepository.UpdateUser(existingUser, ctoken);
+
+            } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+            {
+                return UserErrors.DuplicatedEntry;
+            }
         }
 
-        return await _userRepository.UpdateUser(updatedUserData, ctoken);
+        try
+        {
+            return await _userRepository.UpdateUser(existingUser, ctoken);
+        } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        {
+            return UserErrors.DuplicatedEntry; 
+        }
     }
 
     private async Task<ErrorOr<User>> GetUserByEmail(string email, CancellationToken ctoken = default)

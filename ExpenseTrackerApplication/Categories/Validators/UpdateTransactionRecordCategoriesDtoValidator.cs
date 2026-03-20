@@ -11,5 +11,17 @@ internal sealed class UpdateTransactionRecordCategoriesDtoValidator : AbstractVa
     {
         RuleForEach(c => c)
             .SetValidator(new UpdateTransactionRecordCategoryDtoValidator());
+
+        RuleFor(x => x)
+             .Must(HaveUniqueExternalIds)
+             .WithMessage("Duplicate CategoryExternalId values are not allowed.");
+    }
+
+    private bool HaveUniqueExternalIds(List<UpdateTransactionRecordCategoryRequestDto> list)
+    {
+        return list
+            .Select(x => x.CategoryExternalId)
+            .Distinct()
+            .Count() == list.Count;
     }
 }

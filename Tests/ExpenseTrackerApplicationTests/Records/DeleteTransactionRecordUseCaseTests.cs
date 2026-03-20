@@ -10,6 +10,7 @@ using ExpenseTracker.Domain.Categories.Repository;
 using ExpenseTracker.Domain.Collection.Repository;
 using ExpenseTracker.Domain.Records.Entity;
 using ExpenseTracker.Domain.Records.Repository;
+using FluentAssertions;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Moq;
@@ -22,7 +23,6 @@ public class DeleteTransactionRecordUseCaseTests
     private readonly Mock<IUserRepository> _userRepositoryMock;
     private readonly Mock<ITransactionRecordCategoryRepository> _transactionRecordCategoryRepositoryMock;
     private readonly Mock<ITransactionCollectionRepository> _transactionCollectionRepositoryMock;
-    private readonly Mock<IHttpContextAccessor> _contextMock;
     private readonly Mock<IValidator<AddTransactionRecordRequestDto>> _addRecordValidatorMock;
     private readonly Mock<IValidator<UpdateTransactionRecordRequestDto>> _updateRecordValidatorMock;
     private readonly Mock<IValidator<List<UpdateTransactionRecordRequestDto>>> _updateRecordsValidatorMock;
@@ -35,7 +35,6 @@ public class DeleteTransactionRecordUseCaseTests
         _userRepositoryMock = new Mock<IUserRepository>();
         _transactionRecordCategoryRepositoryMock = new Mock<ITransactionRecordCategoryRepository>();
         _transactionCollectionRepositoryMock = new Mock<ITransactionCollectionRepository>();
-        _contextMock = new Mock<IHttpContextAccessor>();
         _addRecordValidatorMock = new Mock<IValidator<AddTransactionRecordRequestDto>>();
         _updateRecordValidatorMock = new Mock<IValidator<UpdateTransactionRecordRequestDto>>();
         _updateRecordsValidatorMock = new Mock<IValidator<List<UpdateTransactionRecordRequestDto>>>();
@@ -46,7 +45,6 @@ public class DeleteTransactionRecordUseCaseTests
             _userRepositoryMock.Object,
             _transactionRecordCategoryRepositoryMock.Object,
             _transactionCollectionRepositoryMock.Object,
-            _contextMock.Object,
             _addRecordValidatorMock.Object,
             _updateRecordValidatorMock.Object,
             _updateRecordsValidatorMock.Object,
@@ -58,7 +56,7 @@ public class DeleteTransactionRecordUseCaseTests
     public async Task DeleteTransactionRecord_WhenRequestRecordDoesNotExist_ShouldReturnNotFoundError()
     {
         // Arrange
-        long requestUserId = 1;
+        Guid currentUserExternalId = Guid.NewGuid();
         Guid requestTargetExternalId = Guid.NewGuid();
 
         User existingUser = new User
@@ -72,29 +70,40 @@ public class DeleteTransactionRecordUseCaseTests
             ExternalId = Guid.NewGuid()
         };
 
-        _currentUserServiceMock.Setup(service => service.UserId)
-            .Returns(requestUserId);
+        _currentUserServiceMock.Setup(
+            service => service.UserExternalId)
+        .Returns(currentUserExternalId);
 
-        _userRepositoryMock.Setup(repo => repo.GetUserById(requestUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
-        _transactionRecordRepositoryMock.Setup(repo => repo.GetTransactionRecordByExternalId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((TransactionRecord?)null);
+        _transactionRecordRepositoryMock.Setup(
+            repo => repo.GetTransactionRecordByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync((TransactionRecord?)null);
 
         // Act
         var result = await _sut.DeleteTransactionRecord(requestTargetExternalId.ToString(), CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(TransactionRecordErrors.NotFound, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().Be(TransactionRecordErrors.NotFound);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserById(requestUserId, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByExternalId(
+                currentUserExternalId, 
+                It.IsAny<CancellationToken>()),
             Times.Once()
         );
 
         _transactionRecordRepositoryMock.Verify(
-           repo => repo.GetTransactionRecordByExternalId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+           repo => repo.GetTransactionRecordByExternalId(
+               requestTargetExternalId, 
+               It.IsAny<CancellationToken>()),
            Times.Once
        );
     }
@@ -103,7 +112,7 @@ public class DeleteTransactionRecordUseCaseTests
     public async Task DeleteTransactionRecord_WhenRequestUserIsNotOwner_ShouldReturnNotOwnerError()
     {
         // Arrange
-        long requestUserId = 1;
+        Guid currentUserExternalId = Guid.NewGuid();
         Guid requestTargetExternalId = Guid.NewGuid();
 
         User existingUser = new User
@@ -129,29 +138,40 @@ public class DeleteTransactionRecordUseCaseTests
             TransactionUserId = 2
         };
 
-        _currentUserServiceMock.Setup(service => service.UserId)
-            .Returns(requestUserId);
+        _currentUserServiceMock.Setup(
+            service => service.UserExternalId)
+        .Returns(currentUserExternalId);
 
-        _userRepositoryMock.Setup(repo => repo.GetUserById(requestUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
-        _transactionRecordRepositoryMock.Setup(repo => repo.GetTransactionRecordByExternalId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingRecord);
+        _transactionRecordRepositoryMock.Setup(
+            repo => repo.GetTransactionRecordByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingRecord);
 
         // Act
         var result = await _sut.DeleteTransactionRecord(requestTargetExternalId.ToString(), CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(TransactionRecordErrors.NotOwner, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().Be(TransactionRecordErrors.NotOwner);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserById(requestUserId, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByExternalId(
+                currentUserExternalId, 
+                It.IsAny<CancellationToken>()),
             Times.Once()
         );
 
         _transactionRecordRepositoryMock.Verify(
-            repo => repo.GetTransactionRecordByExternalId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            repo => repo.GetTransactionRecordByExternalId(
+                requestTargetExternalId, 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -160,7 +180,7 @@ public class DeleteTransactionRecordUseCaseTests
     public async Task DeleteTransactionRecord_WhenRequestIsValid_ShouldReturnAffectedRows()
     {
         // Arrange
-        long requestUserId = 1;
+        Guid currentUserExternalId = Guid.NewGuid();
         Guid requestTargetExternalId = Guid.NewGuid();
 
         User existingUser = new User
@@ -186,29 +206,58 @@ public class DeleteTransactionRecordUseCaseTests
             TransactionUserId = existingUser.Id,
         };
 
-        _currentUserServiceMock.Setup(service => service.UserId)
-            .Returns(requestUserId);
+        TransactionRecord? capturedRecord = null;
 
-        _userRepositoryMock.Setup(repo => repo.GetUserById(requestUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _currentUserServiceMock.Setup(
+            service => service.UserExternalId)
+        .Returns(currentUserExternalId);
 
-        _transactionRecordRepositoryMock.Setup(repo => repo.GetTransactionRecordByExternalId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingRecord);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
+
+        _transactionRecordRepositoryMock.Setup(
+            repo => repo.GetTransactionRecordByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingRecord);
+
+        _transactionRecordRepositoryMock.Setup(
+            repo => repo.DeleteTransactionRecord(
+                It.IsAny<TransactionRecord>(),
+                It.IsAny<CancellationToken>()))
+        .Callback<TransactionRecord, CancellationToken>((record, _) => capturedRecord = record)
+        .ReturnsAsync(1);
 
         // Act
         var result = await _sut.DeleteTransactionRecord(requestTargetExternalId.ToString(), CancellationToken.None);
 
         // Assert
-        Assert.False(result.IsError);
-        Assert.Equal(typeof(int), result.Value.GetType());
+        result.IsError.Should().BeFalse();
+        result.Value.Should().Be(1);
+
+        capturedRecord.Should().Be(existingRecord);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserById(requestUserId, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByExternalId(
+                currentUserExternalId, 
+                It.IsAny<CancellationToken>()),
             Times.Once()
         );
 
         _transactionRecordRepositoryMock.Verify(
-            repo => repo.GetTransactionRecordByExternalId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            repo => repo.GetTransactionRecordByExternalId(
+                requestTargetExternalId, 
+                It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+
+        _transactionRecordRepositoryMock.Verify(
+            repo => repo.DeleteTransactionRecord(
+                existingRecord,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }

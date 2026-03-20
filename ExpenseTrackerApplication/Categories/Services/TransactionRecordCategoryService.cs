@@ -1,5 +1,6 @@
 ﻿using ErrorOr;
-using ExpenseTracker.Application.Accounts.Errors;
+using ExpenseTracker.Application.Abstractions.DbExceptionHandler;
+using ExpenseTracker.Application.Accounts.Services.UserServices;
 using ExpenseTracker.Application.Authorization.UserRoles.Enums;
 using ExpenseTracker.Application.Categories.Contracts.Requests;
 using ExpenseTracker.Application.Categories.Contracts.Responses;
@@ -9,6 +10,7 @@ using ExpenseTracker.Domain.Accounts.Repository;
 using ExpenseTracker.Domain.Categories.Entity;
 using ExpenseTracker.Domain.Categories.Repository;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 
 namespace ExpenseTracker.Application.Categories.Services;
 
@@ -19,13 +21,15 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
     private readonly IValidator<AddTransactionRecordCategoryRequestDto> _addCategoryValidator;
     private readonly IValidator<UpdateTransactionRecordCategoryRequestDto> _updateCategoryValidator;
     private readonly IValidator<List<UpdateTransactionRecordCategoryRequestDto>> _updateCategoriesValidator;
+    private readonly ICurrentUserService _currentUserService;
 
     public TransactionRecordCategoryService(
         ITransactionRecordCategoryRepository transactionRecordCategoryRepository,
         IUserRepository userRepository,
         IValidator<AddTransactionRecordCategoryRequestDto> addCategoryValidator,
         IValidator<UpdateTransactionRecordCategoryRequestDto> updateCategoryValidator,
-        IValidator<List<UpdateTransactionRecordCategoryRequestDto>> updateCategoriesValidator
+        IValidator<List<UpdateTransactionRecordCategoryRequestDto>> updateCategoriesValidator,
+        ICurrentUserService currentUserService
         )
     {
         _transactionRecordCategoryRepository = transactionRecordCategoryRepository;
@@ -33,6 +37,7 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
         _addCategoryValidator = addCategoryValidator;
         _updateCategoryValidator = updateCategoryValidator;
         _updateCategoriesValidator = updateCategoriesValidator;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ErrorOr<AddTransactionRecordCategoryResponseDto>> AddUserTransactionRecordCategory(AddTransactionRecordCategoryRequestDto request, CancellationToken ctoken = default)
@@ -43,48 +48,55 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
         if (existingUser is null)
             return TransactionRecordCategoryErrors.InvalidArgs;
 
-        TransactionRecordCategory newCategory = new TransactionRecordCategory
+        try
         {
-            CategoryName = request.CategoryName,
-            UserId = existingUser.Id
-        };
-        TransactionRecordCategory addedCategory = await _transactionRecordCategoryRepository.AddTransactionCategory(newCategory);
+            TransactionRecordCategory newCategory = new TransactionRecordCategory
+            {
+                CategoryName = request.CategoryName,
+                UserId = existingUser.Id
+            };
 
-        return new AddTransactionRecordCategoryResponseDto
+            TransactionRecordCategory addedCategory = await _transactionRecordCategoryRepository.AddTransactionCategory(newCategory, ctoken);
+
+            return new AddTransactionRecordCategoryResponseDto
+            {
+                CategoryExternalId = addedCategory.ExternalId,
+                CategoryName = addedCategory.CategoryName,
+                CreatedAt = addedCategory.CreatedAt,
+            };
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
-            CategoryExternalId = addedCategory.ExternalId,
-            CategoryName = addedCategory.CategoryName,
-            TransactionCategoryUserExternalId = addedCategory.ExternalId,
-            CreatedAt = addedCategory.CreatedAt,
-        };
+            return TransactionRecordCategoryErrors.DuplicatedEntry;
+        }
     }
 
-    public async Task<ErrorOr<int>> DeleteTransactionRecordCategory(string userExternalId, string categoryExternalId, CancellationToken ctoken = default)
+    public async Task<ErrorOr<int>> DeleteTransactionRecordCategory(string categoryExternalId, CancellationToken ctoken = default)
     {
+        Guid currentUserExternalId = _currentUserService.UserExternalId;
+
         TransactionRecordCategory? existingCategory = await _transactionRecordCategoryRepository.GetTransactionsCategoryByExternalId(Guid.Parse(categoryExternalId), ctoken);
+
         if (existingCategory is null)
             return TransactionRecordCategoryErrors.NotFound;
 
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(userExternalId), ctoken);
-        if (existingUser is null)
-            return UserErrors.NotFound;
+        User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
 
-        if (existingUser.RoleId == (long)UserRoleEnum.Admin)
+        if (currentUser!.RoleId == (long)UserRoleEnum.Admin)
             return await _transactionRecordCategoryRepository.DeleteTransactionCategory(existingCategory, ctoken);
 
-        if ((long)existingCategory.UserId != (long)existingUser.Id)
+        if (existingCategory.UserId != currentUser.Id)
             return TransactionRecordCategoryErrors.NotOwner;
 
         return await _transactionRecordCategoryRepository.DeleteTransactionCategory(existingCategory, ctoken);
     }
 
-    public async Task<ErrorOr<IEnumerable<GetTransactionRecordCategoryResponseDto>>> GetAllUserTransactionCategories(string userExternalId, CancellationToken ctoken = default)
+    public async Task<ErrorOr<IEnumerable<GetTransactionRecordCategoryResponseDto>>> GetAllUserTransactionCategories(CancellationToken ctoken = default)
     {
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(userExternalId));
-        if (existingUser is null)
-            return TransactionRecordCategoryErrors.InvalidArgs;
+        Guid currentUserExternalId = _currentUserService.UserExternalId;
+        User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
 
-        IEnumerable<TransactionRecordCategory> userCategories = await _transactionRecordCategoryRepository.GetAllUserTransactionCategories(existingUser.Id, ctoken);
+        IEnumerable<TransactionRecordCategory> userCategories = await _transactionRecordCategoryRepository.GetAllUserTransactionCategories(currentUser.Id, ctoken);
 
         return userCategories.Select(uc => new GetTransactionRecordCategoryResponseDto
         {
@@ -93,59 +105,82 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
         }).ToList();
     }
 
-    public async Task<ErrorOr<int>> UpdateAllUserTransactionCategories(string userExternalId, List<UpdateTransactionRecordCategoryRequestDto> request, CancellationToken ctoken = default)
+    public async Task<ErrorOr<int>> UpdateAllUserTransactionCategories(List<UpdateTransactionRecordCategoryRequestDto> request, CancellationToken ctoken = default)
     {
         await _updateCategoriesValidator.ValidateAndThrowAsync(request, ctoken);
 
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(userExternalId));
-        if (existingUser is null)
+        Guid curentUserExternalId = _currentUserService.UserExternalId;
+        User? currentUser = await _userRepository.GetUserByExternalId(curentUserExternalId, ctoken);
+
+        var requestParsedData = request
+            .Select(c => new
+            {
+                categoryExternalId = Guid.Parse(c.CategoryExternalId),
+                categoryName = c.CategoryName
+            })
+            .ToList();
+
+        List<Guid> externalIds = requestParsedData
+            .Select(rp => rp.categoryExternalId)
+            .ToList();
+
+        IEnumerable<TransactionRecordCategory> existingCategories = await _transactionRecordCategoryRepository.GetUserCategoriesByExternalIds(currentUser!.Id, externalIds, ctoken);
+
+        var categoryLookup = existingCategories.ToDictionary(c => c.ExternalId);
+
+        var missingCategories = requestParsedData
+            .Where(r => !categoryLookup.ContainsKey(r.categoryExternalId))
+            .ToList();
+
+        if (missingCategories.Any())
             return TransactionRecordCategoryErrors.InvalidArgs;
 
-        List<Guid> externalIdsFromRequest = request.Select(c => Guid.Parse(c.CategoryExternalId)).Distinct().ToList();
-        IEnumerable<TransactionRecordCategory> existingCategories = await _transactionRecordCategoryRepository.GetAllUserTransactionCategories(existingUser.Id, ctoken);
-        Dictionary<Guid, long> categoryLookup = existingCategories.ToDictionary(c => c.ExternalId, c => c.Id);
-
-        if (externalIdsFromRequest.All(id => categoryLookup.ContainsKey(id)))
-            return TransactionRecordCategoryErrors.NotOwner;
-
-        List<TransactionRecordCategory> mappedCategories = request.Select(c =>
+        try
         {
-            Guid categoryExternalId = Guid.Parse(c.CategoryExternalId);
-
-            return new TransactionRecordCategory
+            List<TransactionRecordCategory> mappedCategories = requestParsedData.Select(c =>
             {
-                CategoryName = c.CategoryName,
-                UserId = existingUser.Id,
-            };
-        }).ToList();
+                TransactionRecordCategory category = categoryLookup[c.categoryExternalId];
+                {
+                    category.CategoryName = c.categoryName;
+                };
 
-        return await _transactionRecordCategoryRepository.UpdateAllUserTransactionCategories(mappedCategories, ctoken);
+                return category;
+            }).ToList();
+
+            return await _transactionRecordCategoryRepository.SaveChanges(ctoken);
+
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        {
+            return TransactionRecordCategoryErrors.DuplicatedEntry;
+        }
     }
 
-    public async Task<ErrorOr<int>> UpdateUserTransactionCategory(string userExternalId, UpdateTransactionRecordCategoryRequestDto request, CancellationToken ctoken = default)
+    public async Task<ErrorOr<int>> UpdateUserTransactionCategory(UpdateTransactionRecordCategoryRequestDto request, CancellationToken ctoken = default)
     {
         await _updateCategoryValidator.ValidateAndThrowAsync(request, ctoken);
 
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(userExternalId));
-        if (existingUser is null)
+        Guid currentUserExternalId = _currentUserService.UserExternalId;
+        User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
+
+        TransactionRecordCategory? existingCategory = await _transactionRecordCategoryRepository.GetTransactionsCategoryByExternalId(Guid.Parse(request.CategoryExternalId), ctoken);
+
+        if (existingCategory is null)
             return TransactionRecordCategoryErrors.InvalidArgs;
 
-        Guid externalIdFromRequest = Guid.Parse(request.CategoryExternalId);
-
-        long? existingCategoryId = await _transactionRecordCategoryRepository.GetTransactionCategoryIdByExternalId(externalIdFromRequest, ctoken);
-        if (existingCategoryId is null)
-            return TransactionRecordCategoryErrors.NotFound;
-
-        TransactionRecordCategory? existingCategory = await _transactionRecordCategoryRepository.GetTransactionRecordCategoryById((long)existingCategoryId, ctoken);
-        if (existingCategory!.UserId != existingUser.Id)
+        if (existingCategory!.UserId != currentUser!.Id)
             return TransactionRecordCategoryErrors.NotOwner;
 
-        TransactionRecordCategory mappedCategory = new TransactionRecordCategory
+        try
         {
-            CategoryName = request.CategoryName,
-            UserId = existingUser.Id,
-        };
+            existingCategory.CategoryName = request.CategoryName;
 
-        return await _transactionRecordCategoryRepository.UpdateUserTransactionCategory(mappedCategory, ctoken);
+            return await _transactionRecordCategoryRepository.SaveChanges(ctoken);
+
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        {
+            return TransactionRecordCategoryErrors.DuplicatedEntry;
+        }
     }
 }

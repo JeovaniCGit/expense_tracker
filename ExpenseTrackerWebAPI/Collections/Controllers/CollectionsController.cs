@@ -42,9 +42,9 @@ public class CollectionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionRead)]
-    public async Task<ActionResult<IEnumerable<GetCollectionResponseDto>>> Get([FromRoute] string userExternalId, [FromQuery] DateTimeOffset? startDate, [FromQuery] DateTimeOffset? endDate, CancellationToken ctoken)
+    public async Task<ActionResult<IEnumerable<GetCollectionResponseDto>>> Get([FromQuery] DateTimeOffset? startDate, [FromQuery] DateTimeOffset? endDate, CancellationToken ctoken)
     {
-        ErrorOr<IEnumerable<GetCollectionResponseDto>> result = await _collectionService.GetAllUserCollections(userExternalId, startDate?? null, endDate?? null, ctoken);
+        ErrorOr<IEnumerable<GetCollectionResponseDto>> result = await _collectionService.GetAllUserCollections(startDate?? null, endDate?? null, ctoken);
 
         if (result.IsError)
             return result.Errors.MapToStatusCode();

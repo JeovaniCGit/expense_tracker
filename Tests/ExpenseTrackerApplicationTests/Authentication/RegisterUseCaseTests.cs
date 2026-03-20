@@ -1,6 +1,5 @@
 ﻿using ExpenseTracker.Application.Abstractions.DateTimeProvider;
 using ExpenseTracker.Application.Accounts.Contracts.Requests;
-using ExpenseTracker.Application.Accounts.Errors;
 using ExpenseTracker.Application.Authentication.AuthenticationServices;
 using ExpenseTracker.Application.Authentication.Contracts.Request;
 using ExpenseTracker.Application.Authentication.Errors;
@@ -8,11 +7,15 @@ using ExpenseTracker.Application.Authentication.JwtLib;
 using ExpenseTracker.Application.Authorization.BCryptLib;
 using ExpenseTracker.Application.Authorization.Tokens.Enums;
 using ExpenseTracker.Application.Authorization.Tokens.Services;
+using ExpenseTracker.Application.Authorization.UserRoles.Enums;
+using ExpenseTracker.Application.Emails.Enums;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
 using ExpenseTracker.Domain.Authorization.Tokens.Entity;
 using ExpenseTracker.Domain.Authorization.Tokens.Repository;
+using ExpenseTracker.Domain.Email.Entity;
 using ExpenseTracker.Domain.Email.Repository;
+using FluentAssertions;
 using FluentValidation;
 using Hangfire;
 using Moq;
@@ -33,6 +36,7 @@ public class RegisterUseCaseTests
     private readonly Mock<IDateProvider> _dateProviderMock;
     private readonly Mock<IValidator<AddUserRequestDto>> _addUserValidatorMock;
     private readonly Mock<IValidator<LoginRequestDto>> _loginValidatorMock;
+    private readonly Mock<IValidator<ResetPassRequestDto>> _resetPasswordValidatorMock;
     private readonly AuthenticationService _sut;
 
     public RegisterUseCaseTests()
@@ -49,6 +53,7 @@ public class RegisterUseCaseTests
         _dateProviderMock = new Mock<IDateProvider>();
         _addUserValidatorMock = new Mock<IValidator<AddUserRequestDto>>();
         _loginValidatorMock = new Mock<IValidator<LoginRequestDto>>();
+        _resetPasswordValidatorMock = new Mock<IValidator<ResetPassRequestDto>>();
         _sut = new AuthenticationService(
             _userRepositoryMock.Object,
             _tokenRepositoryMock.Object,
@@ -61,7 +66,8 @@ public class RegisterUseCaseTests
             _tokenServiceMock.Object,
             _dateProviderMock.Object,
             _addUserValidatorMock.Object,
-            _loginValidatorMock.Object
+            _loginValidatorMock.Object,
+            _resetPasswordValidatorMock.Object
         );
     }
 
@@ -86,18 +92,23 @@ public class RegisterUseCaseTests
             Password = "Password1234!"
         };
 
-        _userRepositoryMock.Setup(repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByEmail(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
         // Act
         var result = await _sut.Register(request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.DuplicatedEntry, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().BeEquivalentTo(AuthenticationErrors.DuplicatedEntry);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()), 
+            repo => repo.GetUserByEmail(
+                request.Email,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -127,35 +138,104 @@ public class RegisterUseCaseTests
             CreatedAt = fixedTimestamp
         };
 
-        _userRepositoryMock.Setup(repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User?)null);
+        EmailDelivery emailStatus = new EmailDelivery
+        {
+            UserId = addedUser.Id,
+            Status = EmailDeliveryStatus.Verification.ToString(),
+            SentAt = null
+        };
 
-        _userRepositoryMock.Setup(repo => repo.CreateUser(It.IsAny<User>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(addedUser);
+        Token verificatonToken = new Token
+        {
+            TokenValue = "some-token",
+            TokenTypeId = (long)TokenDescriptionEnum.EmailVerificationToken,
+            TokenUserId = addedUser.Id
+        };
 
-        _tokenServiceMock.Setup(service => service.GenerateToken(It.IsAny<TokenDescriptionEnum>(), It.IsAny<long>(), It.IsAny<CancellationToken>()))
-            .Returns(new Token
-            {
-                TokenValue = "generatedtoken",
-            });
+        User? capturedUserData = null;
+        EmailDelivery? capturedStatus = null;
+        Token? capturedAddedToken = null;
+
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByEmail(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync((User?)null);
+
+        _passwordHasherMock.Setup(
+            hasher => hasher.Hash(
+                It.IsAny<string>()))
+        .Returns("hashedPassword");
+
+        _userRepositoryMock.Setup(
+            repo => repo.CreateUser(
+                It.IsAny<User>(),
+                It.IsAny<CancellationToken>()))
+        .Callback<User, CancellationToken>((user, _) => capturedUserData = user)
+        .ReturnsAsync(addedUser);
+
+        _tokenServiceMock.Setup(
+            service => service.GenerateToken(
+                It.IsAny<TokenDescriptionEnum>(),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()))
+        .Returns(verificatonToken);
+
+        _tokenRepositoryMock.Setup(
+           repo => repo.AddToken(It.IsAny<Token>()))
+       .Callback<Token, CancellationToken>((token, _) => capturedAddedToken = token)
+       .ReturnsAsync(It.Is<Token>(
+           t => t.TokenUserId == addedUser.Id));
+
+        _emailDeliveryRepositoryMock.Setup(
+            repo => repo.Add(It.IsAny<EmailDelivery>()))
+        .Callback<EmailDelivery>((status) => capturedStatus = status)
+        .Returns(1);
 
         // Act
         var result = await _sut.Register(request, CancellationToken.None);
 
         // Assert
-        Assert.False(result.IsError);
-        Assert.Equal(addedUser.ExternalId, result.Value.ExternalId);
-        Assert.Equal(addedUser.Firstname, result.Value.Firstname);
-        Assert.Equal(addedUser.Lastname, result.Value.Lastname);
-        Assert.Equal(fixedTimestamp, result.Value.CreatedAt);
+        result.IsError.Should().BeFalse();
+
+        capturedUserData.Should().NotBeNull();
+        capturedUserData.Firstname.Should().Be(request.Firstname);
+        capturedUserData.Lastname.Should().Be(request.Lastname);
+        capturedUserData.Email.Should().Be(request.Email);
+        capturedUserData.Password.Should().Be("hashedPassword");
+        capturedUserData.RoleId.Should().Be((long)UserRoleEnum.RegularUser);
+
+        capturedStatus.UserId.Should().Be(addedUser.Id);
+        capturedStatus.Status.Should().Be(EmailDeliveryStatus.Verification.ToString());
+        capturedStatus.SentAt.Should().BeNull();
+
+        capturedAddedToken.TokenValue.Should().Be(verificatonToken.TokenValue);
+        capturedAddedToken.TokenTypeId.Should().Be(verificatonToken.TokenTypeId);
+        capturedAddedToken.TokenUserId.Should().Be(addedUser.Id);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByEmail(request.Email, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByEmail(
+                request.Email,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _userRepositoryMock.Verify(
-            repo => repo.CreateUser(It.IsAny<User>(), It.IsAny<CancellationToken>()),
+            repo => repo.CreateUser(
+                It.IsAny<User>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+
+        _tokenRepositoryMock.Verify(
+            repo => repo.AddToken(
+                It.IsAny<Token>()),
+            Times.Once
+        );
+
+        _emailDeliveryRepositoryMock.Verify(
+            repo => repo.Add(
+                It.IsAny<EmailDelivery>()),
             Times.Once
         );
     }

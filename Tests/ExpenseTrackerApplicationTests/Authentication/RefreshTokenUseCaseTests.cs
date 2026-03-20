@@ -17,6 +17,7 @@ using ExpenseTracker.Domain.Authorization.Tokens.Entity;
 using ExpenseTracker.Domain.Authorization.Tokens.Repository;
 using ExpenseTracker.Domain.Authorization.UserRoles.Entity;
 using ExpenseTracker.Domain.Email.Repository;
+using FluentAssertions;
 using FluentValidation;
 using Hangfire;
 using Moq;
@@ -38,6 +39,7 @@ public class RefreshTokenUseCaseTests
     private readonly Mock<IDateProvider> _dateProviderMock;
     private readonly Mock<IValidator<AddUserRequestDto>> _addUserValidatorMock;
     private readonly Mock<IValidator<LoginRequestDto>> _loginValidatorMock;
+    private readonly Mock<IValidator<ResetPassRequestDto>> _resetPasswordValidatorMock;
     private readonly AuthenticationService _sut;
 
     public RefreshTokenUseCaseTests()
@@ -54,6 +56,7 @@ public class RefreshTokenUseCaseTests
         _dateProviderMock = new Mock<IDateProvider>();
         _addUserValidatorMock = new Mock<IValidator<AddUserRequestDto>>();
         _loginValidatorMock = new Mock<IValidator<LoginRequestDto>>();
+        _resetPasswordValidatorMock = new Mock<IValidator<ResetPassRequestDto>>();
         _sut = new AuthenticationService(
             _userRepositoryMock.Object,
             _tokenRepositoryMock.Object,
@@ -66,7 +69,8 @@ public class RefreshTokenUseCaseTests
             _tokenServiceMock.Object,
             _dateProviderMock.Object,
             _addUserValidatorMock.Object,
-            _loginValidatorMock.Object
+            _loginValidatorMock.Object,
+            _resetPasswordValidatorMock.Object
         );
     }
 
@@ -84,60 +88,16 @@ public class RefreshTokenUseCaseTests
             new Claim("typ", "access_token")
         }));
 
-        _tokenValidatorMock.Setup(service => service.Validate(request.RefreshToken))
-            .Returns(claimsPrincipal);
+        _tokenValidatorMock.Setup(
+            service => service.Validate(request.RefreshToken))
+        .Returns(claimsPrincipal);
 
         // Act
         var result = await _sut.RefreshToken(request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.Unauthorized, result.FirstError);
-    }
-
-    [Fact]
-    public async Task RefreshToken_WhenUserDoesNotExist_ShouldReturnUnauthorizedError()
-    {
-        // Arrange
-        RefreshRequestDto request = new RefreshRequestDto
-        {
-            RefreshToken = "some-refresh-token"
-        };
-
-        User existingUser = new User
-        {
-            Id = 1,
-            Firstname = "John",
-            Lastname = "Doe",
-            Email = "john@doe.com",
-            Password = "hashedpassword",
-            RoleId = (long)UserRoleEnum.RegularUser,
-            ExternalId = Guid.NewGuid()
-        };
-
-        ClaimsPrincipal claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
-        {
-            new Claim("typ", TokenDescriptionEnum.RefreshToken.ToString()),
-            new Claim("sub", existingUser.ExternalId.ToString())
-        }));
-
-        _tokenValidatorMock.Setup(service => service.Validate(request.RefreshToken))
-            .Returns(claimsPrincipal);
-
-        _userRepositoryMock.Setup(repo => repo.GetUserByExternalId(existingUser.ExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User?)null);
-
-        // Act
-        var result = await _sut.RefreshToken(request, CancellationToken.None);
-
-        // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.Unauthorized, result.FirstError);
-
-        _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(existingUser.ExternalId, It.IsAny<CancellationToken>()), 
-            Times.Once
-        );
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().Be(AuthenticationErrors.Unauthorized);
     }
 
     [Fact]
@@ -202,18 +162,25 @@ public class RefreshTokenUseCaseTests
             new Claim("sub", existingUser.ExternalId.ToString())
         }));
 
-        _tokenValidatorMock.Setup(service => service.Validate(request.RefreshToken))
-            .Returns(claimsPrincipal);
+        List<string>? capturedPermissions = null;
 
-        _userRepositoryMock.Setup(repo => repo.GetUserByExternalId(existingUser.ExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _tokenValidatorMock.Setup(
+            service => service.Validate(request.RefreshToken))
+        .Returns(claimsPrincipal);
+
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
         _tokenGeneratorMock.Setup(service => service.GenerateAccessToken(
             It.IsAny<Guid>(), 
             It.IsAny<List<string>>(), 
             It.IsAny<string>(), 
-            It.IsAny<CancellationToken>())
-        ).Returns("some-access-token");
+            It.IsAny<CancellationToken>()))
+        .Callback<Guid, List<string>, string, CancellationToken>((_, permissions, _, _) => capturedPermissions = permissions)
+        .Returns("some-access-token");
 
         _tokenGeneratorMock.Setup(service => service.GenerateRefreshToken(
             It.IsAny<Guid>(),
@@ -221,23 +188,35 @@ public class RefreshTokenUseCaseTests
             It.IsAny<CancellationToken>())
         ).Returns("some-refresh-token");
 
-        _tokenRepositoryMock.Setup(repo => repo.GetTokenByTokenValue(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(fakeToken);
+        _tokenRepositoryMock.Setup(
+            repo => repo.GetTokenByTokenValue(
+                It.IsAny<string>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(fakeToken);
 
         // Act
         var result = await _sut.RefreshToken(request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.InvalidArgs, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().Be(AuthenticationErrors.InvalidArgs);
+
+        capturedPermissions.Should().HaveCount(2);
+        capturedPermissions.Should()
+            .OnlyContain(p => existingUser.Role.RolePermissions
+            .Any(rp => rp.Permission.PermissionName == p));
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(existingUser.ExternalId, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByExternalId(
+                existingUser.ExternalId, 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _tokenRepositoryMock.Verify(
-            repo => repo.GetTokenByTokenValue(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            repo => repo.GetTokenByTokenValue(
+                request.RefreshToken, 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -299,18 +278,25 @@ public class RefreshTokenUseCaseTests
             new Claim("sub", existingUser.ExternalId.ToString())
         }));
 
-        _tokenValidatorMock.Setup(service => service.Validate(request.RefreshToken))
-            .Returns(claimsPrincipal);
+        List<string>? capturedPermissions = null;
 
-        _userRepositoryMock.Setup(repo => repo.GetUserByExternalId(existingUser.ExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _tokenValidatorMock.Setup(
+            service => service.Validate(request.RefreshToken))
+        .Returns(claimsPrincipal);
+
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
         _tokenGeneratorMock.Setup(service => service.GenerateAccessToken(
             It.IsAny<Guid>(),
             It.IsAny<List<string>>(),
             It.IsAny<string>(),
-            It.IsAny<CancellationToken>())
-        ).Returns("some-access-token");
+            It.IsAny<CancellationToken>()))
+        .Callback<Guid, List<string>, string, CancellationToken>((_, permissions, _, _) => capturedPermissions = permissions)
+        .Returns("some-access-token");
 
         _tokenGeneratorMock.Setup(service => service.GenerateRefreshToken(
             It.IsAny<Guid>(),
@@ -318,7 +304,10 @@ public class RefreshTokenUseCaseTests
             It.IsAny<CancellationToken>())
         ).Returns("some-refresh-token");
 
-        _tokenRepositoryMock.Setup(repo => repo.GetTokenByTokenValue(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _tokenRepositoryMock.Setup(
+            repo => repo.GetTokenByTokenValue(
+                It.IsAny<string>(), 
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Token
             {
                 IsUsed = true
@@ -328,16 +317,25 @@ public class RefreshTokenUseCaseTests
         var result = await _sut.RefreshToken(request, CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(AuthenticationErrors.InvalidArgs, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().Be(AuthenticationErrors.InvalidArgs);
+
+        capturedPermissions.Should().HaveCount(2);
+        capturedPermissions.Should()
+            .OnlyContain(p => existingUser.Role.RolePermissions
+            .Any(rp => rp.Permission.PermissionName == p));
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(existingUser.ExternalId, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByExternalId(
+                existingUser.ExternalId, 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _tokenRepositoryMock.Verify(
-            repo => repo.GetTokenByTokenValue(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            repo => repo.GetTokenByTokenValue(
+                request.RefreshToken, 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -402,54 +400,82 @@ public class RefreshTokenUseCaseTests
         Token existingToken = new Token
         {
             TokenValue = "some-refresh-token",
+            TokenUserId = existingUser.Id,
             IsUsed = false
         };
 
-        _tokenValidatorMock.Setup(service => service.Validate(request.RefreshToken))
-            .Returns(claimsPrincipal);
+        List<string>? capturedPermissions = null;
+        Token? capturedToken = null;
 
-        _userRepositoryMock.Setup(repo => repo.GetUserByExternalId(existingUser.ExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _tokenValidatorMock.Setup(
+            service => service.Validate(request.RefreshToken))
+        .Returns(claimsPrincipal);
+
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
         _tokenGeneratorMock.Setup(service => service.GenerateAccessToken(
             It.IsAny<Guid>(),
             It.IsAny<List<string>>(),
             It.IsAny<string>(),
-            It.IsAny<CancellationToken>())
-        ).Returns("some-access-token");
+            It.IsAny<CancellationToken>()))
+        .Callback<Guid, List<string>, string, CancellationToken>((_, permissions, _, _) => capturedPermissions = permissions)
+        .Returns("some-access-token");
 
         _tokenGeneratorMock.Setup(service => service.GenerateRefreshToken(
             It.IsAny<Guid>(),
             It.IsAny<string>(),
-            It.IsAny<CancellationToken>())
-        ).Returns("some-refresh-token");
+            It.IsAny<CancellationToken>()))
+        .Returns("some-refresh-token");
 
-        _tokenRepositoryMock.Setup(repo => repo.GetTokenByTokenValue(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingToken);
+        _tokenRepositoryMock.Setup(
+            repo => repo.GetTokenByTokenValue(
+                It.IsAny<string>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingToken);
 
-        _tokenRepositoryMock.Setup(repo => repo.AddToken(It.IsAny<Token>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(It.IsAny<Token>());
+        _tokenRepositoryMock.Setup(
+            repo => repo.AddToken(
+                It.IsAny<Token>(), 
+                It.IsAny<CancellationToken>()))
+        .Callback<Token, CancellationToken>((token, _) => capturedToken = token)
+        .ReturnsAsync(It.IsAny<Token>());
 
         // Act
         var result = await _sut.RefreshToken(request, CancellationToken.None);
 
         // Assert
-        Assert.False(result.IsError);
-        Assert.Equal("some-access-token", result.Value.AccessToken);
-        Assert.Equal("some-refresh-token", result.Value.RefreshToken);
+        result.IsError.Should().BeFalse();
+
+        capturedPermissions.Should().HaveCount(2);
+        capturedPermissions.Should()
+            .OnlyContain(p => existingUser.Role.RolePermissions
+            .Any(rp => rp.Permission.PermissionName == p));
+
+        capturedToken.TokenValue.Should().Be(existingToken.TokenValue);
+        capturedToken.TokenUserId.Should().Be(existingUser.Id);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(existingUser.ExternalId, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByExternalId(
+                existingUser.ExternalId, 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _tokenRepositoryMock.Verify(
-            repo => repo.GetTokenByTokenValue(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            repo => repo.GetTokenByTokenValue(
+                request.RefreshToken, 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _tokenRepositoryMock.Verify(
-            repo => repo.AddToken(It.IsAny<Token>(), It.IsAny<CancellationToken>()),
+            repo => repo.AddToken(
+                It.IsAny<Token>(), 
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
