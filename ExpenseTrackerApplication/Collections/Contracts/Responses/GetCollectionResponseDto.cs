@@ -5,4 +5,8 @@ public sealed record GetCollectionResponseDto
 {
     public required string Description { get; init; }
     public required Guid CollectionExternalId { get; init; }
+    public required decimal EstimatedBudget { get; init; }
+    public required decimal RealBudget { get; init; }
+    public required DateTimeOffset StartDate { get; init; }
+    public required DateTimeOffset EndDate { get; init; }
 }

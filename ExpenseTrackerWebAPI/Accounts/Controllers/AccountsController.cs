@@ -43,9 +43,9 @@ public class AccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.UserRead)]
-    public async Task<ActionResult<GetUserResponseDto>> GetById([FromRoute] string externalId, CancellationToken ctoken)
+    public async Task<ActionResult<GetUserResponseDto>> GetById(CancellationToken ctoken)
     {
-        ErrorOr<GetUserResponseDto> result = await _userService.GetUserByExternalId(externalId, ctoken);
+        ErrorOr<GetUserResponseDto> result = await _userService.GetUserByExternalId(ctoken);
 
         if (result.IsError)
         {

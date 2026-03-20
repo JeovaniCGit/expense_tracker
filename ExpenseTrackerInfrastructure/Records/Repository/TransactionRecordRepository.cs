@@ -49,13 +49,7 @@ public class TransactionRecordRepository : ITransactionRecordRepository
             .ToListAsync(ctoken);
     }
 
-    public async Task<int> UpdateTransaction(TransactionRecord record, CancellationToken ctoken = default)
-    {
-        int affected = await _context.SaveChangesAsync(ctoken);
-        return affected;
-    }
-
-    public async Task<int> UpdateAllUserTransactions(List<TransactionRecord> records, CancellationToken ctoken = default)
+    public async Task<int> SaveChanges(CancellationToken ctoken = default)
     {
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;

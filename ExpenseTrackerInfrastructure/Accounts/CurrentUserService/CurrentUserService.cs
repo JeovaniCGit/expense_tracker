@@ -12,7 +12,7 @@ public sealed class CurrentUserService : ICurrentUserService
         _context = context;
     }
 
-    public long UserId =>
-        Convert.ToInt64(_context.HttpContext?.User.Claims
+    public Guid UserExternalId =>
+        Guid.Parse(_context.HttpContext?.User.Claims
             .FirstOrDefault(c => c.Type == "Sub")?.Value);
 }

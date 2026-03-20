@@ -12,6 +12,12 @@ internal sealed class AddCollectionDtoValidator : AbstractValidator<AddCollectio
             .NotEmpty()
             .WithMessage("Collection must have a description.");
 
+        RuleFor(c => c.UserExternalId)
+            .NotNull()
+            .NotEmpty()
+            .Must(c => Guid.TryParse(c, out _))
+            .WithMessage("Invalid args.");
+
         RuleFor(c => c.EstimatedBudget)
             .GreaterThan(0)
             .WithMessage("Estimated budget must be bigger than 0.");
@@ -19,5 +25,14 @@ internal sealed class AddCollectionDtoValidator : AbstractValidator<AddCollectio
         RuleFor(c => c.RealBudget)
                .GreaterThan(0)
                .WithMessage("Real budget must be bigger than 0.");
+
+        RuleFor(c => c.StartDate)
+            .NotEmpty()
+            .NotEqual(c => c.EndDate)
+            .WithMessage("Collection must have a valid start date.");
+
+        RuleFor(c => c.EndDate)
+            .NotEmpty()
+            .WithMessage("Collection must have a valid start date.");
     }
 }

@@ -46,32 +46,12 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
             .ToListAsync(ctoken);
     }
 
-    public async Task<TransactionRecordCategory?> GetTransactionRecordCategoryById(long transactionCategoryId, CancellationToken ctoken = default)
-    {
-        return await _context.TransactionRecordCategories.AsNoTracking().FirstOrDefaultAsync(tc => tc.Id == transactionCategoryId, ctoken);
-    }
-
-    public async Task<TransactionRecordCategory> UpdateTransactionRecordCategory(TransactionRecordCategory transactionCategory, CancellationToken ctoken = default)
-    {
-        _context.TransactionRecordCategories.Update(transactionCategory);
-        await _context.SaveChangesAsync(ctoken);
-        return transactionCategory;
-    }
-
     public async Task<TransactionRecordCategory?> GetTransactionsCategoryByExternalId(Guid externalId, CancellationToken ctoken = default)
     {
         return await _context.TransactionRecordCategories.AsNoTracking().FirstOrDefaultAsync(tc => tc.ExternalId == externalId, ctoken);
     }
 
-    #region User related actions
-    public async Task<int> UpdateUserTransactionCategory(TransactionRecordCategory category, CancellationToken ctoken = default)
-    {
-        _context.TransactionRecordCategories.Update(category);
-        int affected = await _context.SaveChangesAsync(ctoken);
-        return affected;
-    }
-
-    public async Task<int> UpdateAllUserTransactionCategories(List<TransactionRecordCategory> categories, CancellationToken ctoken = default)
+    public async Task<int> SaveChanges(CancellationToken ctoken = default)
     {
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;
@@ -99,5 +79,10 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
             .ToListAsync(ctoken);
     }
 
-    #endregion
+    public async Task<TransactionRecordCategory?> GetUserCategoryByCategoryName(long userId, string categoryName, CancellationToken ctoken = default)
+    {
+        return await _context.TransactionRecordCategories
+            .Where(tc => tc.UserId == userId && tc.CategoryName == categoryName)
+            .FirstOrDefaultAsync(ctoken);
+    }
 }
