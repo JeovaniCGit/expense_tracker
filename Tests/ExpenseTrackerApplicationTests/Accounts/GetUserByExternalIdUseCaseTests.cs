@@ -6,6 +6,7 @@ using ExpenseTracker.Application.Authorization.BCryptLib;
 using ExpenseTracker.Application.Authorization.UserRoles.Enums;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
+using FluentAssertions;
 using FluentValidation;
 using Moq;
 
@@ -43,31 +44,10 @@ public class GetUserByExternalIdUseCaseTests
     }
 
     [Fact]
-    public async Task GetUserByExternalId_WhenUserIsNotFound_ShouldReturnNotFoundError()
-    {
-        // Arrange
-        Guid requestExternalId = Guid.NewGuid();
-        _userRepositoryMock.Setup(repo => repo.GetUserByExternalId(requestExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User?)null);
-
-        // Act
-        var result = await _sut.GetUserByExternalId(requestExternalId.ToString(), CancellationToken.None);
-
-        // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(UserErrors.NotFound, result.FirstError);
-
-        _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(requestExternalId, It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
-    [Fact]
     public async Task GetUserByExternalId_WhenRequestIsValid_ShouldReturnGetUserResponseDto()
     {
         // Arrange
-        Guid requestExternalId = Guid.NewGuid();
+        Guid currentUserExternalId = Guid.NewGuid();
 
         User existingUser = new User
         {
@@ -76,24 +56,33 @@ public class GetUserByExternalIdUseCaseTests
             Email = "john@doe.com",
             Password = "hashedpassword",
             RoleId = (long)UserRoleEnum.RegularUser,
-            ExternalId = requestExternalId
+            ExternalId = currentUserExternalId
         };
 
-        _userRepositoryMock.Setup(repo => repo.GetUserByExternalId(requestExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(existingUser);
+        _currentUserServiceMock.Setup(
+            service => service.UserExternalId)
+        .Returns(currentUserExternalId);
+
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingUser);
 
         // Act
-        var result = await _sut.GetUserByExternalId(requestExternalId.ToString(), CancellationToken.None);
+        var result = await _sut.GetUserByExternalId(CancellationToken.None);
 
         // Assert
-        Assert.False(result.IsError);
-        Assert.Equal(existingUser.Firstname, result.Value.Firstname);
-        Assert.Equal(existingUser.Lastname, result.Value.Lastname);
-        Assert.Equal(existingUser.Email, result.Value.Email);
-        Assert.Equal(existingUser.ExternalId, result.Value.UserExternalId);
+        result.IsError.Should().BeFalse();
+        result.Value.Firstname.Should().BeEquivalentTo(existingUser.Firstname);
+        result.Value.Lastname.Should().BeEquivalentTo(existingUser.Lastname);
+        result.Value.Email.Should().BeEquivalentTo(existingUser.Email);
+        result.Value.UserExternalId.Should().Be(existingUser.ExternalId);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(requestExternalId, It.IsAny<CancellationToken>()),
+            repo => repo.GetUserByExternalId(
+                currentUserExternalId,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }

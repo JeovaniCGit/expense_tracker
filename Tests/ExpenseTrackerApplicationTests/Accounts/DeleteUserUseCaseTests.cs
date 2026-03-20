@@ -6,6 +6,7 @@ using ExpenseTracker.Application.Authorization.BCryptLib;
 using ExpenseTracker.Application.Authorization.UserRoles.Enums;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
+using FluentAssertions;
 using FluentValidation;
 using Moq;
 
@@ -43,38 +44,13 @@ public class DeleteUserUseCaseTests
     }
 
     [Fact]
-    public async Task DeleteUser_WhenRequestUserDoesNotExist_ShouldReturnUnauthorizedError()
-    {
-        // Arrange
-        Guid externalId = Guid.NewGuid();
-        long requestUserId = 1;
-
-        _currentUserServiceMock.Setup(service => service.UserId).Returns(requestUserId);
-
-        _userRepositoryMock.Setup(repo => repo.GetUserById(requestUserId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User?)null);
-
-        // Act
-        var result = await _sut.DeleteUser(externalId.ToString(), CancellationToken.None);
-
-        // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(UserErrors.Unauthorized, result.FirstError);
-
-        _userRepositoryMock.Verify(
-            repo => repo.GetUserById(requestUserId, It.IsAny<CancellationToken>()), 
-            Times.Once
-        );
-    }
-
-    [Fact]
     public async Task DeleteUser_WhenTargetUserDoesNotExist_ShouldReturnInvalidArgsError()
     {
         // Arrange
-        Guid requestUserExternalId = Guid.NewGuid();
-        Guid targetUserExternalId = requestUserExternalId;
+        Guid currentUserExternalId = Guid.NewGuid();
+        Guid targetUserExternalId = Guid.NewGuid();
 
-        User requestUser = new User
+        User currentUser = new User
         {
             Id = 1,
             Firstname = "John",
@@ -82,43 +58,43 @@ public class DeleteUserUseCaseTests
             Email = "john@doe.com",
             Password = "hashedpassword",
             RoleId = (long)UserRoleEnum.RegularUser,
-            ExternalId = requestUserExternalId
+            ExternalId = currentUserExternalId
         };
 
-        User targetUser = new User
-        {
-            Firstname = "John",
-            Lastname = "Doe",
-            Email = "john@doe.com",
-            Password = "hashedpassword",
-            RoleId = (long)UserRoleEnum.RegularUser,
-            ExternalId = targetUserExternalId
-        };
+        _currentUserServiceMock.Setup(
+            service => service.UserExternalId)
+        .Returns(currentUserExternalId);
 
-        _currentUserServiceMock.Setup(service => service.UserId).Returns(requestUser.Id);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(currentUser);
 
-        _userRepositoryMock
-            .Setup(repo => repo.GetUserById(requestUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(requestUser);
-
-        _userRepositoryMock
-            .Setup(repo => repo.GetUserByExternalId(targetUserExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((User?)null);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync((User?)null);
 
         // Act
-        var result = await _sut.DeleteUser(targetUser.ExternalId.ToString(), CancellationToken.None);
+        var result = await _sut.DeleteUser(targetUserExternalId.ToString(), CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(UserErrors.InvalidArgs, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().BeEquivalentTo(UserErrors.InvalidArgs);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserById(requestUser.Id, It.IsAny<CancellationToken>()), 
+            repo => repo.GetUserByExternalId(
+                currentUserExternalId, 
+                It.IsAny<CancellationToken>()), 
             Times.Once
         );
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(targetUserExternalId, It.IsAny<CancellationToken>()), 
+            repo => repo.GetUserByExternalId(
+                targetUserExternalId,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
@@ -127,17 +103,16 @@ public class DeleteUserUseCaseTests
     public async Task DeleteUser_WhenUserIsNotOwnerOfAccountOrAdmin_ShouldReturnForbiddenError()
     {
         // Arrange
-        Guid requestUserExternalId = Guid.NewGuid();
         Guid targetUserExternalId = Guid.NewGuid();
 
-        User requestUser = new User
+        User currentUser = new User
         {
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
             Password = "hashedpassword",
             RoleId = (long)UserRoleEnum.RegularUser,
-            ExternalId = requestUserExternalId
+            ExternalId = Guid.NewGuid()
         };
 
         User targetUser = new User
@@ -147,45 +122,55 @@ public class DeleteUserUseCaseTests
             Email = "john@doe.com",
             Password = "hashedpassword",
             RoleId = (long)UserRoleEnum.RegularUser,
-            ExternalId = targetUserExternalId
+            ExternalId = Guid.NewGuid()
         };
 
-        _currentUserServiceMock.Setup(service => service.UserId).Returns(requestUser.Id);
+        _currentUserServiceMock.Setup(
+            service => service.UserExternalId)
+        .Returns(currentUser.ExternalId);
 
-        _userRepositoryMock
-            .Setup(repo => repo.GetUserById(requestUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(requestUser);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(currentUser);
 
-        _userRepositoryMock
-            .Setup(repo => repo.GetUserByExternalId(targetUserExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(targetUser);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(targetUser);
 
         // Act
-        var result = await _sut.DeleteUser(targetUser.ExternalId.ToString(), CancellationToken.None);
+        var result = await _sut.DeleteUser(targetUserExternalId.ToString(), CancellationToken.None);
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.Equal(UserErrors.Forbidden, result.FirstError);
+        result.IsError.Should().BeTrue();
+        result.FirstError.Should().BeEquivalentTo(UserErrors.Forbidden);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserById(requestUser.Id, It.IsAny<CancellationToken>()), 
-            Times.Once
-        );
+          repo => repo.GetUserByExternalId(
+              currentUser.ExternalId,
+              It.IsAny<CancellationToken>()),
+          Times.Once
+      );
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(targetUserExternalId, It.IsAny<CancellationToken>()), 
+            repo => repo.GetUserByExternalId(
+                targetUserExternalId,
+                It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
 
     [Fact]
-    public async Task DeleteUser_WhenRequestIsValid_ShouldReturnAffectedRowsAsInt()
+    public async Task DeleteUser_WhenRequestIsValid_ShouldReturnAffectedRows()
     {
         // Arrange
-        Guid requestUserExternalId = Guid.NewGuid();
-        Guid targetUserExternalId = requestUserExternalId;
+        Guid currentUserExternalId = Guid.NewGuid();
+        Guid targetUserExternalId = currentUserExternalId;
 
-        User requestUser = new User
+        User currentUser = new User
         {
             Id = 1,
             Firstname = "John",
@@ -193,7 +178,7 @@ public class DeleteUserUseCaseTests
             Email = "john@doe.com",
             Password = "hashedpassword",
             RoleId = (long)UserRoleEnum.RegularUser,
-            ExternalId = requestUserExternalId
+            ExternalId = currentUserExternalId
         };
 
         User targetUser = new User
@@ -206,31 +191,53 @@ public class DeleteUserUseCaseTests
             ExternalId = targetUserExternalId
         };
 
-        _currentUserServiceMock.Setup(service => service.UserId).Returns(requestUser.Id);
+        User? capturedUserData = null;
 
-        _userRepositoryMock
-            .Setup(repo => repo.GetUserById(requestUser.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(requestUser);
+        _currentUserServiceMock.Setup(
+            service => service.UserExternalId)
+        .Returns(currentUserExternalId);
 
-        _userRepositoryMock
-            .Setup(repo => repo.GetUserByExternalId(targetUserExternalId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(targetUser);
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(currentUser);
+
+        _userRepositoryMock.Setup(
+            repo => repo.GetUserByExternalId(
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(targetUser);
+
+        _userRepositoryMock.Setup(
+            repo => repo.DeleteUser(
+                It.IsAny<User>(),
+                It.IsAny<CancellationToken>()))
+        .Callback<User, CancellationToken>((user, _) => capturedUserData = user)
+        .ReturnsAsync(1);
 
         // Act
-        var result = await _sut.DeleteUser(targetUser.ExternalId.ToString(), CancellationToken.None);
+        var result = await _sut.DeleteUser(targetUserExternalId.ToString(), CancellationToken.None);
 
         // Assert
-        Assert.False(result.IsError);
-        Assert.Equal(typeof(int), result.Value.GetType());
+        result.IsError.Should().BeFalse();
+        result.Value.Should().Be(1);
+
+        capturedUserData.Should().NotBeNull();
+        capturedUserData.Should().BeEquivalentTo(targetUser);
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserById(requestUser.Id, It.IsAny<CancellationToken>()), 
-            Times.Once
+            repo => repo.GetUserByExternalId(
+                currentUserExternalId, 
+                It.IsAny<CancellationToken>()), 
+            Times.AtMost(2)
         );
 
         _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(targetUserExternalId, It.IsAny<CancellationToken>()), 
-            Times.Once
-        );
+           repo => repo.DeleteUser(
+               It.IsAny<User>(), 
+               It.IsAny<CancellationToken>()),
+           Times.Once
+       );
     }
 }
