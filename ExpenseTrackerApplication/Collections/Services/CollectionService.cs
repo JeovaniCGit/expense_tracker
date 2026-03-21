@@ -4,6 +4,7 @@ using ExpenseTracker.Application.Accounts.Services.UserServices;
 using ExpenseTracker.Application.Collections.Contracts.Requests;
 using ExpenseTracker.Application.Collections.Contracts.Responses;
 using ExpenseTracker.Application.Collections.Errors;
+using ExpenseTracker.Application.Records.Errors;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
 using ExpenseTracker.Domain.Collection.Repository;
@@ -132,7 +133,12 @@ public sealed class CollectionService : ICollectionService
         {
             return await _transactionCollectionRepository.SaveChanges(ctoken);
 
-        } catch(DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            return CollectionErrors.ConcurrencyConflict;
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
             return CollectionErrors.DuplicatedEntry;
         }

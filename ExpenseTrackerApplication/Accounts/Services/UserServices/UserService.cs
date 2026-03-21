@@ -172,7 +172,13 @@ public sealed class UserService : IUserService
         try
         {
             return await _userRepository.UpdateUser(existingUser, ctoken);
-        } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            return UserErrors.ConcurrencyConflict;
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
             return UserErrors.DuplicatedEntry; 
         }

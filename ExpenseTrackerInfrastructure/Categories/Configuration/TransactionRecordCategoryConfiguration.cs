@@ -38,5 +38,8 @@ internal sealed class TransactionRecordCategoryConfiguration : BaseEntityConfigu
            .IsUnique();
 
         builder.HasQueryFilter(trc => !trc.User.IsDeleted && !trc.IsDeleted);
+
+        builder.Property<uint>("xmin")
+            .IsRowVersion();
     }
 }

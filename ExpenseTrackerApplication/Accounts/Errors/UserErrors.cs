@@ -26,4 +26,7 @@ public static class UserErrors
 
     public static Error NotOwner =>
        Error.Forbidden("User.NotOwner", "Error, user does not own the requested resource.");
+
+    public static Error ConcurrencyConflict =>
+        Error.Conflict("User.ConcurrencyConflict", "The resource was modified by another process. Please reload and try again.");
 }

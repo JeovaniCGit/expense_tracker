@@ -13,8 +13,11 @@ public static class CollectionErrors
         Error.Unauthorized("Collection.Unauthorized", "Error, unauthorized action.");
 
     public static Error NotOwner =>
-    Error.Unauthorized("Collection.NotOwner", "Unauthorized.");
+        Error.Unauthorized("Collection.NotOwner", "Unauthorized.");
 
     public static Error DuplicatedEntry =>
-   Error.Conflict("Collection.DuplicatedEntry", "Error, collection already exists.");
+        Error.Conflict("Collection.DuplicatedEntry", "Error, collection already exists.");
+
+    public static Error ConcurrencyConflict =>
+        Error.Conflict("Collection.ConcurrencyConflict", "The resource was modified by another process. Please reload and try again.");
 }

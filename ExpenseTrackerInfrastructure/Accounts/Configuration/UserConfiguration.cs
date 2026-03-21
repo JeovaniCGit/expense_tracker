@@ -53,5 +53,8 @@ internal sealed class UserConfiguration : BaseEntityConfiguration<User>
             .IsRequired();
 
         builder.HasQueryFilter(p => !p.IsDeleted);
+
+        builder.Property<uint>("xmin")
+            .IsRowVersion();
     }
 }

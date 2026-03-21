@@ -6,5 +6,4 @@ public interface IPasswordHistoryRepository
 {
         Task<PasswordHistory?> GetByPasswordHash(string passwordHash, CancellationToken ctoken = default);
         Task<int> Add(PasswordHistory passwordHistory, CancellationToken ctoken = default);
-        Task<int> Update(PasswordHistory passwordHistory, CancellationToken ctoken = default);
 }

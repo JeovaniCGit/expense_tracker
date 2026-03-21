@@ -44,5 +44,8 @@ internal sealed class TokenConfiguration : BaseEntityConfiguration<Token>
             .HasForeignKey(t => t.TokenTypeId);
         
         builder.HasQueryFilter(t => !t.User.IsDeleted && !t.IsDeleted);
+
+        builder.Property<uint>("xmin")
+            .IsRowVersion();
     }
 }
