@@ -5,6 +5,7 @@ using ExpenseTracker.Application.Authorization.UserRoles.Enums;
 using ExpenseTracker.Application.Categories.Contracts.Requests;
 using ExpenseTracker.Application.Categories.Contracts.Responses;
 using ExpenseTracker.Application.Categories.Errors;
+using ExpenseTracker.Application.Records.Errors;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
 using ExpenseTracker.Domain.Categories.Entity;
@@ -150,6 +151,10 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
             return await _transactionRecordCategoryRepository.SaveChanges(ctoken);
 
         }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            return TransactionRecordCategoryErrors.ConcurrencyConflict;
+        }
         catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
             return TransactionRecordCategoryErrors.DuplicatedEntry;
@@ -177,6 +182,10 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
 
             return await _transactionRecordCategoryRepository.SaveChanges(ctoken);
 
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            return TransactionRecordCategoryErrors.ConcurrencyConflict;
         }
         catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {

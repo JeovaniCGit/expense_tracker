@@ -22,9 +22,8 @@ public sealed class EmailDeliveryRepository : IEmailDeliveryRepository
             .FirstAsync();
     }
 
-    public async Task<int> Update(EmailDelivery email)
+    public async Task<int> SaveChanges(EmailDelivery email)
     {
-        _context.EmailDeliveries.Update(email);
         int affected = await _context.SaveChangesAsync();
         return affected;
     }

@@ -55,5 +55,8 @@ internal sealed class TransactionCollectionConfiguration : BaseEntityConfigurati
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasQueryFilter(tc => !tc.User.IsDeleted && !tc.IsDeleted);
+
+        builder.Property<uint>("xmin")
+            .IsRowVersion();
     }
 }
