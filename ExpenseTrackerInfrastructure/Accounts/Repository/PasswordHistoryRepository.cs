@@ -26,11 +26,4 @@ public sealed class PasswordHistoryRepository : IPasswordHistoryRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(ph => ph.PasswordHash == passwordHash, ctoken);
     }
-
-    public async Task<int> Update(PasswordHistory passwordHistory, CancellationToken ctoken = default)
-    {
-        _context.PasswordHistory.Update(passwordHistory);
-        int affected = await _context.SaveChangesAsync();
-        return affected;
-    }
 }

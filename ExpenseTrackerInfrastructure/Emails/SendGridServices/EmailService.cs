@@ -77,7 +77,7 @@ public sealed class EmailService : IEmailService
                 SentAt = _dateTimeProvider.Now
             };
 
-            await _emailDeliveryRepository.Update(emailStatus);
+            await _emailDeliveryRepository.SaveChanges(emailStatus);
             return EmailSenderResult.Ok();
         }
 
@@ -130,7 +130,7 @@ public sealed class EmailService : IEmailService
                 SentAt = _dateTimeProvider.Now
             };
 
-            await _emailDeliveryRepository.Update(emailStatus);
+            await _emailDeliveryRepository.SaveChanges(emailStatus);
             throw exception;
         }
     }

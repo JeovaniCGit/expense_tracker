@@ -191,7 +191,12 @@ public sealed class TransactionRecordService : ITransactionRecordService
 
             return await _transactionRecordRepository.SaveChanges(ctoken);
 
-        } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            return TransactionRecordErrors.ConcurrencyConflict;
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
             return TransactionRecordErrors.DuplicatedEntry;
         }
@@ -218,7 +223,12 @@ public sealed class TransactionRecordService : ITransactionRecordService
         {
             return await _transactionRecordRepository.SaveChanges(ctoken);
 
-        } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            return TransactionRecordErrors.ConcurrencyConflict;
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
             return TransactionRecordErrors.DuplicatedEntry; 
         }

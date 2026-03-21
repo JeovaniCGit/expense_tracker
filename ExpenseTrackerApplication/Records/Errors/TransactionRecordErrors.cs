@@ -17,4 +17,7 @@ public sealed class TransactionRecordErrors
 
     public static Error DuplicatedEntry =>
         Error.Conflict("TransactionRecord.DuplicatedEntry", "Error, record already exists.");
+
+    public static Error ConcurrencyConflict =>
+        Error.Conflict("TransactionRecord.ConcurrencyConflict", "The resource was modified by another process. Please reload and try again.");
 }
