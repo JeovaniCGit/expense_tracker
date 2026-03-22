@@ -29,7 +29,7 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordWrite)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<AddTransactionRecordResponseDto>> Create([FromBody] AddTransactionRecordRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<AddTransactionRecordResponseDto> result = await _transactionRecordService.AddUserTransactionRecord(request, ctoken);
@@ -45,7 +45,7 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordRead)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<IEnumerable<GetTransactionRecordResponseDto>>> GetByCategoryId([FromQuery] string categoryExternalId, CancellationToken ctoken)
     {
         ErrorOr<IEnumerable<GetTransactionRecordResponseDto>> result = await _transactionRecordService.GetAllUserTransactionsByCategory(categoryExternalId, ctoken);
@@ -61,7 +61,7 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordRead)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<IEnumerable<GetTransactionRecordResponseDto>>> GetByCollectionId([FromQuery] string collectionExternalId, CancellationToken ctoken)
     {
         ErrorOr<IEnumerable<GetTransactionRecordResponseDto>> result = await _transactionRecordService.GetAllTransactionsByCollectionId(collectionExternalId, ctoken);
@@ -78,7 +78,7 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordWrite)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult> Update([FromBody] UpdateTransactionRecordRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _transactionRecordService.UpdateUserTransaction(request, ctoken);
@@ -95,7 +95,7 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordWrite)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult> UpdateAll([FromBody] List<UpdateTransactionRecordRequestDto> request, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _transactionRecordService.UpdateAllUserTransactions(request, ctoken);
@@ -112,7 +112,7 @@ public class RecordsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordDelete)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult> Delete([FromRoute] string recordExternalId, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _transactionRecordService.DeleteTransactionRecord(recordExternalId, ctoken);

@@ -29,7 +29,7 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryWrite)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<AddTransactionRecordCategoryResponseDto>> Create([FromBody] AddTransactionRecordCategoryRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<AddTransactionRecordCategoryResponseDto> result = await _categoryService.AddUserTransactionRecordCategory(request, ctoken);
@@ -45,7 +45,7 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryRead)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<IEnumerable<GetTransactionRecordCategoryResponseDto>>> GetAllByUserId(CancellationToken ctoken)
     {
         ErrorOr<IEnumerable<GetTransactionRecordCategoryResponseDto>> result = await _categoryService.GetAllUserTransactionCategories(ctoken);
@@ -62,7 +62,7 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryWrite)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<UpdateTransactionRecordCategoryResponseDto>> Update([FromBody] UpdateTransactionRecordCategoryRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _categoryService.UpdateUserTransactionCategory(request, ctoken);
@@ -79,7 +79,7 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryWrite)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<UpdateTransactionRecordCategoryResponseDto>> UpdateAll([FromBody] List<UpdateTransactionRecordCategoryRequestDto> request, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _categoryService.UpdateAllUserTransactionCategories(request, ctoken);
@@ -95,7 +95,7 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryDelete)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult> Delete([FromQuery] string categoryExternalId, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _categoryService.DeleteTransactionRecordCategory(categoryExternalId, ctoken);

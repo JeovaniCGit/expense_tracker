@@ -28,7 +28,7 @@ public class CollectionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionWrite)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<AddCollectionResponseDto>> Create([FromBody] AddCollectionRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<AddCollectionResponseDto> result = await _collectionService.AddCollection(request, ctoken);
@@ -44,7 +44,7 @@ public class CollectionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionRead)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<IEnumerable<GetCollectionResponseDto>>> Get([FromQuery] DateTimeOffset? startDate, [FromQuery] DateTimeOffset? endDate, CancellationToken ctoken)
     {
         ErrorOr<IEnumerable<GetCollectionResponseDto>> result = await _collectionService.GetAllUserCollections(startDate?? null, endDate?? null, ctoken);
@@ -61,7 +61,7 @@ public class CollectionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionWrite)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult> Update([FromBody] UpdateCollectionRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _collectionService.UpdateCollection(request, ctoken);
@@ -78,7 +78,7 @@ public class CollectionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionDelete)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult> Delete([FromRoute] string collectionExternalId, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _collectionService.DeleteCollection(collectionExternalId, ctoken);

@@ -27,7 +27,7 @@ public class AdminAccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.Admin)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<GetAllUsersResponseDto>> GetAll([FromRoute] int page, [FromRoute] int pageSize, CancellationToken ctoken)
     {
         IEnumerable<GetAllUsersResponseDto> result = await _userService.GetAllUsers(page, pageSize, ctoken);
@@ -39,7 +39,7 @@ public class AdminAccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.Admin)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<GetUserAnalyticsResponseDto>> GetUserAnalytics(CancellationToken ctoken)
     {
         GetUserAnalyticsResponseDto result = await _adminAnalyticsService.GetUsersAnalytics(ctoken);

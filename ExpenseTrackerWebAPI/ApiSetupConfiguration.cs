@@ -165,7 +165,7 @@ public static class ApiSetupConfiguration
     {
         services.AddRequestTimeouts(options =>
         {
-            options.AddPolicy("FastRead", new RequestTimeoutPolicy
+            options.AddPolicy("FastOperation", new RequestTimeoutPolicy
             {
                 Timeout = TimeSpan.FromSeconds(2)
             });

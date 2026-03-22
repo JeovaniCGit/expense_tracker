@@ -28,7 +28,7 @@ public class AccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<AddUserResponseDto>> Create([FromBody] AddUserRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<AddUserResponseDto> result = await _userService.CreateUser(request, ctoken);
@@ -45,7 +45,7 @@ public class AccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.UserRead)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<GetUserResponseDto>> GetById(CancellationToken ctoken)
     {
         ErrorOr<GetUserResponseDto> result = await _userService.GetUserByExternalId(ctoken);
@@ -64,7 +64,7 @@ public class AccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.UserWrite)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<UpdateUserResponseDto>> Update([FromBody] UpdateUserRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _userService.UpdateUser(request, ctoken);
@@ -82,7 +82,7 @@ public class AccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.UserDelete)]
-    [RequestTimeout("FastRead")]
+    [RequestTimeout("FastOperation")]
     public async Task<ActionResult<bool>> Delete([FromRoute] string externalId, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _userService.DeleteUser(externalId, ctoken);
