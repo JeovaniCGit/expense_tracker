@@ -4,6 +4,7 @@ using ExpenseTracker.Application.Accounts.Services.AdminServices;
 using ExpenseTracker.Application.Accounts.Services.UserServices;
 using ExpenseTracker.Application.Authorization.Perms.Attributes;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -26,6 +27,7 @@ public class AdminAccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.Admin)]
+    [RequestTimeout("FastRead")]
     public async Task<ActionResult<GetAllUsersResponseDto>> GetAll([FromRoute] int page, [FromRoute] int pageSize, CancellationToken ctoken)
     {
         IEnumerable<GetAllUsersResponseDto> result = await _userService.GetAllUsers(page, pageSize, ctoken);
@@ -37,6 +39,7 @@ public class AdminAccountsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.Admin)]
+    [RequestTimeout("FastRead")]
     public async Task<ActionResult<GetUserAnalyticsResponseDto>> GetUserAnalytics(CancellationToken ctoken)
     {
         GetUserAnalyticsResponseDto result = await _adminAnalyticsService.GetUsersAnalytics(ctoken);

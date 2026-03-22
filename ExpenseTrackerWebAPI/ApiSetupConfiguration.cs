@@ -3,6 +3,7 @@ using ExpenseTracker.API.Validation.Middleware;
 using ExpenseTracker.Application.Abstractions.RateLimitingConstants;
 using ExpenseTracker.Application.Authorization.Perms.Seeds;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.IdentityModel.Tokens;
@@ -21,6 +22,7 @@ public static class ApiSetupConfiguration
         AddAuthenticationConfiguration(services, configuration);
         AddRateLimiting(services);
         AddCors(services, configuration);
+        AddRequestTimeout(services);
 
         return services;
     }
@@ -153,6 +155,24 @@ public static class ApiSetupConfiguration
                         AutoReplenishment = true
                     }
                 );
+            });
+        });
+
+        return services;
+    }
+
+    public static IServiceCollection AddRequestTimeout(this IServiceCollection services)
+    {
+        services.AddRequestTimeouts(options =>
+        {
+            options.AddPolicy("FastRead", new RequestTimeoutPolicy
+            {
+                Timeout = TimeSpan.FromSeconds(2)
+            });
+
+            options.AddPolicy("ExternalCall", new RequestTimeoutPolicy
+            {
+                Timeout = TimeSpan.FromSeconds(8)
             });
         });
 

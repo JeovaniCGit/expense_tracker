@@ -8,6 +8,7 @@ using ExpenseTracker.Application.Authentication.AuthenticationServices;
 using ExpenseTracker.Application.Authentication.Contracts.Request;
 using ExpenseTracker.Application.Authentication.Contracts.Response;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -29,6 +30,7 @@ public class AuthenticationController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
+    [RequestTimeout("FastRead")]
     public async Task<ActionResult> Register([FromBody] AddUserRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<AddUserResponseDto> result = await _authenticationService.Register(request, ctoken);
@@ -44,6 +46,7 @@ public class AuthenticationController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
+    [RequestTimeout("FastRead")]
     public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<LoginResponseDto> result = await _authenticationService.Login(request, ctoken);
@@ -59,6 +62,7 @@ public class AuthenticationController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
+    [RequestTimeout("FastRead")]
     public async Task<ActionResult<RefreshResponseDto>> Refresh([FromBody] RefreshRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<RefreshResponseDto> result = await _authenticationService.RefreshToken(request, ctoken);
@@ -74,6 +78,7 @@ public class AuthenticationController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
+    [RequestTimeout("FastRead")]
     public async Task<ActionResult> ForgotPassword([FromQuery] string email, CancellationToken ctoken)
     {
         await _authenticationService.ForgotPassword(email, ctoken);
@@ -86,6 +91,7 @@ public class AuthenticationController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
+    [RequestTimeout("FastRead")]
     public async Task<ActionResult> ResetPassword([FromQuery] string emailToken, [FromBody] ResetPassRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<bool> result = await _authenticationService.ResetPassword(emailToken, request, ctoken);
@@ -101,6 +107,7 @@ public class AuthenticationController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
+    [RequestTimeout("FastRead")]
     public async Task<ActionResult> ResetPassword([FromQuery] string emailToken,CancellationToken ctoken)
     {
         ErrorOr<bool> result = await _authenticationService.MarkUserAsVerified(emailToken, ctoken);
