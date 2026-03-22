@@ -16,6 +16,7 @@ namespace ExpenseTrackerWebAPI
             builder.Host.UseLoggingConfiguration();
 
             builder.Services.AddControllers();
+            builder.Services.AddRequestTimeout();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddInfrastructure(builder.Configuration);
