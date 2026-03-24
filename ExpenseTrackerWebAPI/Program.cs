@@ -1,4 +1,5 @@
 using ExpenseTracker.API;
+using ExpenseTracker.API.Swagger;
 using ExpenseTracker.Application;
 using ExpenseTracker.Infrastructure;
 using Hangfire;
@@ -16,9 +17,9 @@ namespace ExpenseTrackerWebAPI
             builder.Host.UseLoggingConfiguration();
 
             builder.Services.AddControllers();
+            builder.Services.AddSwaggerGen( x => x.OperationFilter<SwaggerDefaultValues>());
             builder.Services.AddRequestTimeout();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
             builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddApplication(builder.Configuration);
             builder.Services.AddApiSetup(builder.Configuration);
@@ -28,7 +29,14 @@ namespace ExpenseTrackerWebAPI
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI();
+                app.UseSwaggerUI(x =>
+                {
+                    foreach (var description in app.DescribeApiVersions())
+                    {
+                        x.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
+                            description.GroupName);
+                    }
+                });
             }
 
             app.UseHttpsRedirection();
