@@ -1,5 +1,4 @@
-﻿using ExpenseTracker.Domain.Accounts.Entity;
-using ExpenseTracker.Domain.Email.Entity;
+﻿using ExpenseTracker.Domain.Email.Entity;
 using ExpenseTracker.Infrastructure.Base.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -30,9 +29,9 @@ public sealed class EmailDeliveryConfiguration : BaseEntityConfiguration<EmailDe
         builder.Property(p => p.Status)
             .IsRequired();
 
-        builder.HasOne<User>()
-            .WithOne()
-            .HasForeignKey<EmailDelivery>(f => f.UserId)
+        builder.HasOne(p => p.User)
+            .WithMany()
+            .HasForeignKey(fk => fk.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Property<uint>("xmin")

@@ -9,6 +9,7 @@ using ExpenseTracker.Domain.Accounts.Repository;
 using ExpenseTracker.Domain.Authorization.Tokens.Repository;
 using ExpenseTracker.Domain.Categories.Repository;
 using ExpenseTracker.Domain.Collection.Repository;
+using ExpenseTracker.Domain.Email.Repository;
 using ExpenseTracker.Domain.Records.Repository;
 using ExpenseTracker.Infrastructure.Abstractions;
 using ExpenseTracker.Infrastructure.Accounts.AnalyticsService;
@@ -22,8 +23,10 @@ using ExpenseTracker.Infrastructure.Authorization.Tokens.Repository;
 using ExpenseTracker.Infrastructure.Categories.Repository;
 using ExpenseTracker.Infrastructure.Collections.Repository;
 using ExpenseTracker.Infrastructure.Database;
+using ExpenseTracker.Infrastructure.Emails.Repository;
 using ExpenseTracker.Infrastructure.Emails.SendGridConfiguration;
 using ExpenseTracker.Infrastructure.Emails.Services;
+using ExpenseTracker.Infrastructure.Hangfire;
 using ExpenseTracker.Infrastructure.Records.Repository;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -42,7 +45,6 @@ public static class InfrastructureServiceCollectionExtensions
         AddServices(services);
         AddDatabase(services, configuration);
         AddHangfireToInfrastructure(services, configuration);
-        AddRecurringJobs();
         AddSendGridOptions(services, configuration);
         AddJwtTokenOptions(services, configuration);
         return services;
@@ -63,6 +65,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IDeleteExpiredTokensService, DeleteExpiredTokensJob>();
         services.AddScoped<IAdminAnalyticsService, AdminAnalyticsService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IEmailDeliveryRepository, EmailDeliveryRepository>();
+        services.AddTransient<RecurringJobsScheduler>();
+        services.AddHttpContextAccessor();
 
         services.AddSingleton<ISendGridClient>(provider =>
         {
@@ -94,6 +99,7 @@ public static class InfrastructureServiceCollectionExtensions
         });
         return services;
     }
+
     public static IServiceCollection AddJwtTokenOptions(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<JwtTokenOptions>(options =>
@@ -109,7 +115,15 @@ public static class InfrastructureServiceCollectionExtensions
 
     public static IServiceCollection AddHangfireToInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddHangfireServer(x => x.SchedulePollingInterval = TimeSpan.FromSeconds(15));
+        services.AddHangfireServer(x =>
+        {
+            var hangfireOptions = configuration
+                .GetSection("Hangfire")
+                .Get<HangfireOptions>();
+
+            x.SchedulePollingInterval = TimeSpan.FromSeconds(hangfireOptions!.SchedulePollingIntervalInSeconds);
+            x.ServerName = hangfireOptions.ServerName;
+        });
 
         services.AddHangfire(config =>
             config.SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
@@ -118,10 +132,5 @@ public static class InfrastructureServiceCollectionExtensions
                   .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(configuration.GetConnectionString("EXPENSETRACKER_CONNECTION_STRING"))));
 
         return services;
-    }
-
-    public static void AddRecurringJobs()
-    {
-        RecurringJob.AddOrUpdate<DeleteExpiredTokensJob>(DeleteExpiredTokensJob.Name, job => job.DeleteExpiredTokens(), Cron.Hourly());
     }
 }

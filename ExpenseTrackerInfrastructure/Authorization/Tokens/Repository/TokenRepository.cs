@@ -32,7 +32,9 @@ public class TokenRepository : ITokenRepository
         //For now since the tokens will be hard deleted will keep ExecuteDeleteAsync
         //Later if Soft delete is required, use RemoveRange version
         DateTime now = DateTime.UtcNow;
-        await _context.Tokens.AsNoTracking().Where(t => t.CreatedAt.AddMinutes(t.TokenType.TimeToLiveInMinutes) < now || t.IsUsed == true).Select(t => t.Id).ExecuteDeleteAsync();
+        await _context.Tokens
+            .Where(t => t.CreatedAt.AddMinutes(t.TokenType.TimeToLiveInMinutes) < now || t.IsUsed == true)
+            .ExecuteDeleteAsync();
         return true;
     }
 
