@@ -11,13 +11,19 @@ namespace ExpenseTrackerWebAPI
     {
         public static void Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
             DotNetEnv.Env.Load();
+            var builder = WebApplication.CreateBuilder(args);
 
             builder.Host.UseLoggingConfiguration();
 
             builder.Services.AddControllers();
-            builder.Services.AddSwaggerGen( x => x.OperationFilter<SwaggerDefaultValues>());
+            builder.Services.AddSwaggerGen(x =>
+            {
+                var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+
+                x.IncludeXmlComments(xmlPath);
+            });
             builder.Services.AddRequestTimeout();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddInfrastructure(builder.Configuration);
@@ -48,6 +54,11 @@ namespace ExpenseTrackerWebAPI
             app.UseRateLimiter();
             app.UseHangfireDashboard();
             app.MapControllers();
+
+            // Creates a DI scope to safely add the existing jobs to the hangfire storage on startup
+            using var scope = app.Services.CreateScope();
+            var scheduler = scope.ServiceProvider.GetRequiredService<RecurringJobsScheduler>();
+            scheduler.AddRecurringJobs();
 
             app.Run();
         }
