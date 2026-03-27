@@ -10,9 +10,9 @@ using System.Text;
 namespace ExpenseTracker.Infrastructure.Authentication.JwtLib;
 public sealed class JwtTokenGenerator : IJwtTokenGenerator
 {
-    private readonly JwtTokenOptions _options;
+    private readonly JwtOptions _options;
 
-    public JwtTokenGenerator(IOptions<JwtTokenOptions> options)
+    public JwtTokenGenerator(IOptions<JwtOptions> options)
     {
         _options = options.Value;
     }
