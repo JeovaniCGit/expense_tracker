@@ -10,10 +10,10 @@ namespace ExpenseTracker.Infrastructure.Authentication.JwtLib;
 
 public sealed class JwtTokenValidator : IJwtTokenValidator
 {
-    private readonly JwtTokenOptions _options;
+    private readonly JwtOptions _options;
     private readonly TokenValidationParameters _parameters;
 
-    public JwtTokenValidator(IOptions<JwtTokenOptions> options)
+    public JwtTokenValidator(IOptions<JwtOptions> options)
     {
         _options = options.Value;
 

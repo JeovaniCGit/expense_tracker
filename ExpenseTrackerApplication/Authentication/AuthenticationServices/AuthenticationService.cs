@@ -176,12 +176,12 @@ public sealed class AuthenticationService : IAuthenticationService
             .Select(rp => rp.Permission.PermissionName)
             .ToList();
 
-        string AccessToken = _tokenGenerator.GenerateAccessToken(existingUser.ExternalId, userPermissions, existingUser.Email, ctoken);
-        string RefreshToken = _tokenGenerator.GenerateRefreshToken(existingUser.ExternalId, existingUser.Email, ctoken);
+        string accessToken = _tokenGenerator.GenerateAccessToken(existingUser.ExternalId, userPermissions, existingUser.Email, ctoken);
+        string refreshToken = _tokenGenerator.GenerateRefreshToken(existingUser.ExternalId, existingUser.Email, ctoken);
 
         Token newRecord = new Token
         {
-            TokenValue = RefreshToken,
+            TokenValue = refreshToken,
             TokenTypeId = (long)TokenDescriptionEnum.RefreshToken,
             TokenUserId = existingUser.Id
         };
@@ -190,8 +190,8 @@ public sealed class AuthenticationService : IAuthenticationService
 
         return new LoginResponseDto
         {
-            AccessToken = AccessToken,
-            RefreshToken = RefreshToken
+            AccessToken = accessToken,
+            RefreshToken = refreshToken
         };
     }
 

@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using ErrorOr;
+using ExpenseTracker.API.Authentication.Cookies;
 using ExpenseTracker.API.Extensions;
 using ExpenseTracker.Application.Abstractions.RateLimitingConstants;
 using ExpenseTracker.Application.Accounts.Contracts.Requests;
@@ -23,9 +24,11 @@ namespace ExpenseTracker.API.Authentication.Controllers;
 public class AuthenticationController : ControllerBase
 {
     private readonly IAuthenticationService _authenticationService;
-    public AuthenticationController(IAuthenticationService authenticationService)
+    private readonly AuthCookieFactory _authCookieFactory;
+    public AuthenticationController(IAuthenticationService authenticationService, AuthCookieFactory authCookieFactory)
     {
         _authenticationService = authenticationService;
+        _authCookieFactory = authCookieFactory;
     }
 
     /// <summary>
@@ -75,6 +78,9 @@ public class AuthenticationController : ControllerBase
         if (result.IsError)
             return result.Errors.MapToStatusCode();
 
+        Response.Cookies.Append("access_token", result.Value.AccessToken, _authCookieFactory.CreateAccessTokenCookie());
+        Response.Cookies.Append("refresh_token", result.Value.RefreshToken, _authCookieFactory.CreateRefreshTokenCookie());
+
         return Ok(result);
     }
 
@@ -99,6 +105,9 @@ public class AuthenticationController : ControllerBase
 
         if (result.IsError)
             return result.Errors.MapToStatusCode();
+
+        Response.Cookies.Append("access_token", result.Value.AccessToken, _authCookieFactory.CreateAccessTokenCookie());
+        Response.Cookies.Append("refresh_token", result.Value.RefreshToken, _authCookieFactory.CreateRefreshTokenCookie());
 
         return Ok(result);
     }

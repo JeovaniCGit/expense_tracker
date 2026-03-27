@@ -2,6 +2,7 @@
 using ExpenseTracker.Application.Accounts.Services.AdminServices;
 using ExpenseTracker.Application.Accounts.Services.UserServices;
 using ExpenseTracker.Application.Authentication.JwtLib;
+using ExpenseTracker.Application.Authentication.JwtLib.Configuration;
 using ExpenseTracker.Application.Authorization.BCryptLib;
 using ExpenseTracker.Application.Authorization.Tokens.Jobs;
 using ExpenseTracker.Application.Emails.Services;
@@ -46,7 +47,7 @@ public static class InfrastructureServiceCollectionExtensions
         AddDatabase(services, configuration);
         AddHangfireToInfrastructure(services, configuration);
         AddSendGridOptions(services, configuration);
-        AddJwtTokenOptions(services, configuration);
+        AddJwtSigningOptions(services, configuration);
         return services;
     }
 
@@ -91,24 +92,24 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.Configure<SendGridOptions>(options =>
         {
-            options.FromEmail = configuration["FROM_EMAIL"]!;
-            options.FromName = configuration["FROM_NAME"]!;
-            options.ApiKey = configuration["SEND_GRID_API_KEY"]!;
-            options.VerificationTemplateId = configuration["SEND_GRID_VERIFICATION_TEMPLATE_ID"]!;
-            options.ResetTemplateId = configuration["SEND_GRID_RESET_TEMPLATE_ID"]!;
+            options.FromEmail = configuration.GetValue<string>("FROM_EMAIL")!;
+            options.FromName = configuration.GetValue<string>("FROM_NAME")!;
+            options.ApiKey = configuration.GetValue<string>("SEND_GRID_API_KEY")!;
+            options.VerificationTemplateId = configuration.GetValue<string>("SEND_GRID_VERIFICATION_TEMPLATE_ID")!;
+            options.ResetTemplateId = configuration.GetValue<string>("SEND_GRID_RESET_TEMPLATE_ID")!;
         });
         return services;
     }
 
-    public static IServiceCollection AddJwtTokenOptions(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddJwtSigningOptions(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<JwtTokenOptions>(options =>
+        services.Configure<JwtOptions>(options =>
         {
-            options.SigningKey = configuration["JWT_SIGNINGKEY"]!;
-            options.AccessTokenExpiryMinutes = Convert.ToInt32(configuration["JWT_ACCESSTOKEN_EXPIRYMINUTES"]);
-            options.RefreshTokenExpiryDays = Convert.ToInt32(configuration["JWT_REFRESHTOKEN_EXPIRYDAYS"]);
-            options.Issuer = configuration["JWT_ISSUER"]!;
-            options.Audience = configuration["JWT_AUDIENCE"]!;
+            options.SigningKey = configuration.GetValue<string>("JWT_SIGNINGKEY")!;
+            options.AccessTokenExpiryMinutes = configuration.GetValue<int>("JWT_ACCESSTOKEN_EXPIRYMINUTES");
+            options.RefreshTokenExpiryDays = configuration.GetValue<int>("JWT_REFRESHTOKEN_EXPIRYDAYS");
+            options.Issuer = configuration.GetValue<string>("JWT_ISSUER")!;
+            options.Audience = configuration.GetValue<string>("JWT_AUDIENCE")!;
         });
         return services;
     }
