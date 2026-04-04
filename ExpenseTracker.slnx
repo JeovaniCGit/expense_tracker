@@ -1,0 +1,28 @@
+<Solution>
+  <Folder Name="/src/" />
+    <Folder Name="/src/Api/" />
+      <Folder Name="/src/Api/ExpenseTrackerWebAPI/">
+        <Project Path="src/Api/ExpenseTrackerWebAPI/ExpenseTracker.API.csproj" />
+      </Folder>
+
+    <Folder Name="/src/Application/" />
+      <Folder Name="/src/Application/ExpenseTrackerApplication/">
+        <Project Path="src/Application/ExpenseTrackerApplication/ExpenseTracker.Application.csproj" />
+    </Folder>
+
+    <Folder Name="/src/Domain/" />
+      <Folder Name="/src/Domain/ExpenseTrackerDomain/">
+        <Project Path="src/Domain/ExpenseTrackerDomain/ExpenseTracker.Domain.csproj" />
+    </Folder>
+
+    <Folder Name="/src/Infrastructure/" />
+      <Folder Name="/src/Infrastructure/ExpenseTrackerInfrastructure/">
+        <Project Path="src/Infrastructure/ExpenseTrackerInfrastructure/ExpenseTracker.Infrastructure.csproj" />
+    </Folder>
+    
+  <Folder Name="/tests/" />
+    <Folder Name="/tests/UnitTests/" />
+      <Folder Name="/tests/UnitTests/ExpenseTrackerApplicationTests/">
+        <Project Path="tests/UnitTests/ExpenseTrackerApplicationTests/ExpenseTrackerApplication.Tests.csproj" />
+  </Folder>
+</Solution>
