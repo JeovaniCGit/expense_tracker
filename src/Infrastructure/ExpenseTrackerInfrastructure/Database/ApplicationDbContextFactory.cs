@@ -9,8 +9,7 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
 {
     public ApplicationDbContext CreateDbContext(string[] args)
     {
-        var root = Directory.GetCurrentDirectory();
-        Env.Load(Path.Combine());
+        Env.Load();
 
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
