@@ -26,9 +26,9 @@ namespace ExpenseTracker.API
             });
             builder.Services.AddRequestTimeout();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddInfrastructure(builder.Configuration);
-            builder.Services.AddApplication(builder.Configuration);
-            builder.Services.AddApiSetup(builder.Configuration);
+            builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
+            builder.Services.AddApplication();
+            builder.Services.AddApiSetup(builder.Configuration, builder.Environment);
 
             var app = builder.Build();
 
@@ -49,23 +49,29 @@ namespace ExpenseTracker.API
             app.AddCustomMiddleware();
             app.UseSerilogRequestLogging();
             app.UseCors("Default");
+            app.UseRouting();
+            app.UseRequestTimeouts();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseRateLimiter();
-            app.UseHangfireDashboard();
             app.MapControllers();
-
-            // Creates a DI scope to safely add the existing jobs to the hangfire storage on startup
-            using var scope = app.Services.CreateScope();
-            var scheduler = scope.ServiceProvider.GetRequiredService<RecurringJobsScheduler>();
-            scheduler.AddRecurringJobs();
-
-            app.Lifetime.ApplicationStarted.Register(() =>
+            
+            if (!app.Environment.IsEnvironment("Test"))
             {
-                foreach (var url in app.Urls)
-                    Console.WriteLine($"Now listening on: {url}");
-            });
+                app.UseHangfireDashboard();
 
+                // Creates a DI scope to safely add the existing jobs to the hangfire storage on startup
+                using var scope = app.Services.CreateScope();
+                var scheduler = scope.ServiceProvider.GetRequiredService<RecurringJobsScheduler>();
+                scheduler.AddRecurringJobs();
+
+                app.Lifetime.ApplicationStarted.Register(() =>
+                {
+                    foreach (var url in app.Urls)
+                        Console.WriteLine($"Now listening on: {url}");
+                });
+            }
+            
             app.Run();
         }
     }

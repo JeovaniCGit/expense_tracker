@@ -1,4 +1,5 @@
-﻿using ExpenseTracker.Application.Accounts.Services.UserServices;
+﻿using System.IdentityModel.Tokens.Jwt;
+using ExpenseTracker.Application.Accounts.Services.UserServices;
 using Microsoft.AspNetCore.Http;
 
 namespace ExpenseTracker.Infrastructure.Accounts.CurrentUserService;
@@ -14,5 +15,5 @@ public sealed class CurrentUserService : ICurrentUserService
 
     public Guid UserExternalId =>
         Guid.Parse(_context.HttpContext?.User.Claims
-            .FirstOrDefault(c => c.Type == "Sub")?.Value);
+            .FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)!.Value);
 }

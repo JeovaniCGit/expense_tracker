@@ -22,7 +22,12 @@
     
   <Folder Name="/tests/" />
     <Folder Name="/tests/UnitTests/" />
-      <Folder Name="/tests/UnitTests/ExpenseTrackerApplicationTests/">
-        <Project Path="tests/UnitTests/ExpenseTrackerApplicationTests/ExpenseTrackerApplication.Tests.csproj" />
-  </Folder>
+      <Folder Name="/tests/UnitTests/ExpenseTrackerUnitTests/">
+        <Project Path="tests/UnitTests/ExpenseTrackerUnitTests/ExpenseTracker.UnitTests.csproj" />
+      </Folder>
+
+    <Folder Name="/tests/IntegrationTests/" />
+      <Folder Name="/tests/IntegrationTests/ExpenseTrackerIntegrationTests/">
+        <Project Path="tests/IntegrationTests/ExpenseTrackerIntegrationTests/ExpenseTracker.IntegrationTests.csproj" />
+      </Folder>
 </Solution>

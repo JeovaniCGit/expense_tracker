@@ -15,7 +15,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace ExpenseTracker.API.Categories.Controllers;
 
 [ApiVersion("1")]
-[Route("api/v{version:apiVersion}/accounts/{userExternalId}/records/categories")]
+[Route("api/v{version:apiVersion}/accounts/me/records/categories")]
 [ApiController]
 [ApiExplorerSettings(GroupName = "Categories")]
 [SwaggerTag("Manage transaction record categories for a user.")]

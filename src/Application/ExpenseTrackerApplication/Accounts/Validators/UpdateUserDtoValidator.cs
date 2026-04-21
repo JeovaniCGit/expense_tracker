@@ -2,7 +2,7 @@
 using FluentValidation;
 
 namespace ExpenseTracker.Application.Accounts.Validators;
-internal sealed class UpdateUserDtoValidator : AbstractValidator<UpdateUserRequestDto>
+public sealed class UpdateUserDtoValidator : AbstractValidator<UpdateUserRequestDto>
 {
     public UpdateUserDtoValidator()
     {

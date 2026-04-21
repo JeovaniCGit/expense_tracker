@@ -15,7 +15,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace ExpenseTracker.API.Collections.Controllers;
 
 [ApiVersion("1")]
-[Route("api/v{version:apiVersion}/accounts/{userExternalId}/collections")]
+[Route("api/v{version:apiVersion}/accounts/me/collections")]
 [ApiController]
 [ApiExplorerSettings(GroupName = "Collections")]
 [SwaggerTag("Manage user collections for transaction grouping.")]

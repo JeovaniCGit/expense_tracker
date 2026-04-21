@@ -3,7 +3,7 @@ using FluentValidation;
 
 namespace ExpenseTracker.Application.Authentication.Validators;
 
-internal sealed class ResetPassValidator : AbstractValidator<ResetPassRequestDto>
+public sealed class ResetPassValidator : AbstractValidator<ResetPassRequestDto>
 {
     public ResetPassValidator()
     {

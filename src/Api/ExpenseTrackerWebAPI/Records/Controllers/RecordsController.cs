@@ -15,7 +15,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace ExpenseTracker.API.Records.Controllers;
 
 [ApiVersion("1")]
-[Route("api/v{version:apiVersion}/accounts/{userExternalId}/records")]
+[Route("api/v{version:apiVersion}/accounts/me/records")]
 [ApiController]
 [ApiExplorerSettings(GroupName = "Records")]
 [SwaggerTag("Manage transaction records for a user (create, query, update, delete).")]

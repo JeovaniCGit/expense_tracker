@@ -2,7 +2,7 @@
 using FluentValidation;
 
 namespace ExpenseTracker.Application.Collections.Validators;
-internal sealed class AddCollectionDtoValidator : AbstractValidator<AddCollectionRequestDto>
+public sealed class AddCollectionDtoValidator : AbstractValidator<AddCollectionRequestDto>
 {
     public AddCollectionDtoValidator()
     {

@@ -3,7 +3,7 @@ using FluentValidation;
 
 namespace ExpenseTracker.Application.Authentication.Validators;
 
-internal sealed class LoginDtoValidator : AbstractValidator<LoginRequestDto>
+public sealed class LoginDtoValidator : AbstractValidator<LoginRequestDto>
 {
     public LoginDtoValidator()
     {

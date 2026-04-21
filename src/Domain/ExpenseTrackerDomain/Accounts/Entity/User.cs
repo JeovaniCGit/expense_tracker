@@ -15,7 +15,7 @@ public class User : AuditEntity
 
     public string Password { get; set; }
 
-    public DateTimeOffset PasswordLastUpdated { get; set; } = DateTimeOffset.Now;
+    public DateTimeOffset PasswordLastUpdated { get; set; } = DateTimeOffset.UtcNow;
 
     public bool IsEmailVerified { get; set; } = false;
 

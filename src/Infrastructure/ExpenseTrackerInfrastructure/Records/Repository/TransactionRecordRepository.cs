@@ -23,7 +23,12 @@ public class TransactionRecordRepository : ITransactionRecordRepository
 
     public async Task<int> DeleteTransactionRecord(TransactionRecord record, CancellationToken ctoken = default)
     {
-        _context.TransactionRecords.Remove(record);
+        var entity = await _context.TransactionRecords.FindAsync(record.Id);
+
+        if (entity == null)
+            return 0;
+
+        _context.TransactionRecords.Remove(entity);
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;
     }

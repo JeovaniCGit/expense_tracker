@@ -21,7 +21,11 @@ internal class TransactionCollectionRepository : ITransactionCollectionRepositor
 
     public async Task<int> DeleteCollection(TransactionCollection transactionCollection, CancellationToken ctoken = default)
     {
-        _context.Collections.Remove(transactionCollection);
+        var entity = await _context.Collections.FindAsync(transactionCollection.Id);
+        if (entity == null)
+            return 0;
+        
+        _context.Collections.Remove(entity);
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;
     }
