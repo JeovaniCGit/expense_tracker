@@ -1,17 +1,25 @@
 ﻿using Asp.Versioning;
+using ExpenseTracker.API.Authentication.Cookies;
 using ExpenseTracker.API.Logging.Middleware;
 using ExpenseTracker.API.Swagger;
 using ExpenseTracker.API.Validation.Middleware;
 using ExpenseTracker.Application.Abstractions.RateLimitingConstants;
+using ExpenseTracker.Application.Accounts.Services.UserServices;
 using ExpenseTracker.Application.Authorization.Perms.Seeds;
+using ExpenseTracker.Application.Categories.Services;
+using ExpenseTracker.Application.Collections.Services;
+using ExpenseTracker.Application.Records.Services;
+using ExpenseTracker.Infrastructure.Database;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -20,12 +28,13 @@ namespace ExpenseTracker.API;
 
 public static class ApiSetupConfiguration
 {
-    public static IServiceCollection AddApiSetup(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApiSetup(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        services.AddSingleton<AuthCookieFactory>();
         AddAuthorizationConfiguration(services, configuration);
         AddAuthenticationConfiguration(services, configuration);
         AddRateLimiting(services);
-        AddCors(services, configuration);
+        AddCors(services, configuration, environment);
         AddRequestTimeout(services);
         AddApiVersioning(services);
         services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
@@ -70,8 +79,13 @@ public static class ApiSetupConfiguration
         return services;
     }
 
-    public static IServiceCollection AddCors(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddCors(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        if (environment.IsEnvironment("Test"))
+        {
+            return services;
+        }
+
         services.AddCors(options =>
         {
             options.AddPolicy("Default", policy =>
@@ -127,11 +141,7 @@ public static class ApiSetupConfiguration
 
             rtOptions.AddPolicy(RateLimitingPolicy.AuthenticatedUsers, context =>
             {
-                string? userId = context.User.FindFirstValue("Sub");
-
-                //Add Custom Exception here 
-                if (string.IsNullOrWhiteSpace(userId))
-                    throw new Exception();
+                string? userId = context.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
                 return RateLimitPartition.GetSlidingWindowLimiter
                    (

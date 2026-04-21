@@ -1,0 +1,43 @@
+{
+  "configurations": [
+    {
+      "name": "C#: ExpenseTracker.IntegrationTests",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/tests/IntegrationTests/ExpenseTrackerIntegrationTests/ExpenseTracker.IntegrationTests.csproj",
+      "launchConfigurationId": "TargetFramework=;ExpenseTracker.IntegrationTests"
+    },
+    {
+      "name": ".NET Core Launch (web)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/Api/ExpenseTrackerWebAPI/bin/Debug/net8.0/ExpenseTracker.API.dll",
+      "args": ["--urls", "http://localhost:0"],
+      "cwd": "${workspaceFolder}/Api/ExpenseTrackerWebAPI",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "pattern": "Now listening on: (https?://\\S+)",
+        "action": "openExternally"
+      },
+      "env": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": ".NET Test (Integration)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "dotnet",
+      "args": [
+        "test",
+        "${workspaceFolder}/tests/IntegrationTests/ExpenseTrackerIntegrationTests/ExpenseTracker.IntegrationTests.csproj",
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    }
+  ]
+}
