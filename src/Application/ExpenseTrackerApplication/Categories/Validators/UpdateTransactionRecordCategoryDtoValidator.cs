@@ -2,7 +2,7 @@
 using FluentValidation;
 
 namespace ExpenseTracker.Application.Categories.Validators;
-internal sealed class UpdateTransactionRecordCategoryDtoValidator : AbstractValidator<UpdateTransactionRecordCategoryRequestDto>
+public sealed class UpdateTransactionRecordCategoryDtoValidator : AbstractValidator<UpdateTransactionRecordCategoryRequestDto>
 {
     public UpdateTransactionRecordCategoryDtoValidator()
     {

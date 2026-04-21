@@ -34,6 +34,7 @@ using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SendGrid;
 
@@ -41,11 +42,11 @@ namespace ExpenseTracker.Infrastructure;
 
 public static class InfrastructureServiceCollectionExtensions
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         AddServices(services);
         AddDatabase(services, configuration);
-        AddHangfireToInfrastructure(services, configuration);
+        AddHangfireToInfrastructure(services, configuration, environment);
         AddSendGridOptions(services, configuration);
         AddJwtSigningOptions(services, configuration);
         return services;
@@ -114,8 +115,13 @@ public static class InfrastructureServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddHangfireToInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddHangfireToInfrastructure(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        if (environment.IsEnvironment("Test"))
+        {
+            return services;
+        }
+
         services.AddHangfireServer(x =>
         {
             var hangfireOptions = configuration

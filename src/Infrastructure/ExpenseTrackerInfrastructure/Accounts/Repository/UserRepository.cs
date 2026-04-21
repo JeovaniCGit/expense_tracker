@@ -22,7 +22,11 @@ internal sealed class UserRepository : IUserRepository
 
     public async Task<int> DeleteUser(User user, CancellationToken ctoken = default)
     {
-        _context.Remove(user);
+        var entity = await _context.Users.FindAsync(user.Id);
+        if (entity == null)
+            return 0;
+
+        _context.Users.Remove(entity);
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;
     }

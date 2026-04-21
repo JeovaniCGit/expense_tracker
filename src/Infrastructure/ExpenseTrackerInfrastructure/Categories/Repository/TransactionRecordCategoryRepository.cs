@@ -23,7 +23,11 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
 
     public async Task<int> DeleteTransactionCategory(TransactionRecordCategory transactionCategory, CancellationToken ctoken = default)
     {
-        _context.TransactionRecordCategories.Remove(transactionCategory);
+        var entity = await _context.TransactionRecordCategories.FindAsync(transactionCategory.Id);
+        if (entity == null)
+            return 0;
+
+        _context.TransactionRecordCategories.Remove(entity);
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;
     }
@@ -39,6 +43,7 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
             .OrderBy(tc => tc.CategoryName)
             .Select(tc => new TransactionRecordCategory
             {
+                Id = tc.Id,
                 ExternalId = tc.ExternalId,
                 CategoryName = tc.CategoryName,
                 UserId = tc.UserId
@@ -64,6 +69,7 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
             .OrderBy(tc => tc.CategoryName)
             .Select(tc => new TransactionRecordCategory
             {
+                Id = tc.Id,
                 ExternalId = tc.ExternalId,
                 CategoryName = tc.CategoryName,
                 UserId = tc.UserId

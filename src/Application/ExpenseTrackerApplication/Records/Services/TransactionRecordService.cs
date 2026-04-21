@@ -62,15 +62,20 @@ public sealed class TransactionRecordService : ITransactionRecordService
         if (existingUser is null)
             return TransactionRecordErrors.InvalidArgs;
 
+        long? existingCollectionId = await _transactionCollectionRepository.GetCollectionIdByExternalId(Guid.Parse(request.TransactionCollectionExternalId), ctoken);
+
+        if (existingCollectionId is null)
+            return TransactionRecordErrors.InvalidArgs;
+
         IEnumerable<TransactionRecordCategory> defaultCategories = await _transactionRecordCategoryRepository.GetAllTransactionsCategories(ctoken);
         IEnumerable<TransactionRecordCategory> userCategories = await _transactionRecordCategoryRepository.GetAllUserTransactionCategories(existingUser.Id, ctoken);
 
-        TransactionRecordCategory? validatedCategoryId = userCategories.Where(tc => tc.ExternalId == Guid.Parse(request.TransactionCategoryExternalId)).FirstOrDefault();
+        long? existingCategoryId = userCategories.Where(tc => tc.ExternalId == Guid.Parse(request.TransactionCategoryExternalId)).Select(tc => tc.Id).FirstOrDefault();
 
-        if (validatedCategoryId is null)
-            validatedCategoryId = defaultCategories.Where(tc => tc.ExternalId == Guid.Parse(request.TransactionCategoryExternalId)).FirstOrDefault();
+        if (existingCategoryId is null || existingCategoryId == 0)
+            existingCategoryId = defaultCategories.Where(tc => tc.ExternalId == Guid.Parse(request.TransactionCategoryExternalId)).Select(tc => tc.Id).FirstOrDefault();
 
-        if (validatedCategoryId is null)
+        if (existingCategoryId is null || existingCategoryId == 0)
             return TransactionRecordErrors.InvalidArgs;
 
         try
@@ -79,7 +84,8 @@ public sealed class TransactionRecordService : ITransactionRecordService
             {
                 TransactionValue = request.TransactionValue,
                 TransactionUserId = existingUser.Id,
-                TransactionCategoryId = validatedCategoryId.Id
+                TransactionCategoryId = (long)existingCategoryId,
+                TransactionCollectionId = (long)existingCollectionId
             };
 
             TransactionRecord addedRecord = await _transactionRecordRepository.AddTransaction(mappedRecord, ctoken);
@@ -106,7 +112,7 @@ public sealed class TransactionRecordService : ITransactionRecordService
         if (existingRecord is null)
             return TransactionRecordErrors.NotFound;
 
-        if (currentUser.Role.Id == (long)UserRoleEnum.Admin)
+        if (currentUser.RoleId == (long)UserRoleEnum.Admin)
             return await _transactionRecordRepository.DeleteTransactionRecord(existingRecord, ctoken);
 
         if (existingRecord.TransactionUserId != currentUser.Id)

@@ -2,7 +2,7 @@
 using FluentValidation;
 
 namespace ExpenseTracker.Application.Records.Validators;
-internal sealed class AddTransactionRecordDtoValidator : AbstractValidator<AddTransactionRecordRequestDto>
+public sealed class AddTransactionRecordDtoValidator : AbstractValidator<AddTransactionRecordRequestDto>
 {
     public AddTransactionRecordDtoValidator()
     {
@@ -17,6 +17,11 @@ internal sealed class AddTransactionRecordDtoValidator : AbstractValidator<AddTr
              .WithMessage("Invalid arguments.");
 
         RuleFor(tr => tr.TransactionCategoryExternalId)
+            .NotEmpty()
+            .Must(id => Guid.TryParse(id, out _))
+            .WithMessage("Invalid arguments.");
+
+        RuleFor(tr => tr.TransactionCollectionExternalId)
             .NotEmpty()
             .Must(id => Guid.TryParse(id, out _))
             .WithMessage("Invalid arguments.");

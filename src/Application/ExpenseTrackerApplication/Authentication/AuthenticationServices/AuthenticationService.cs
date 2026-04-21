@@ -20,7 +20,8 @@ using ExpenseTracker.Domain.Email.Entity;
 using ExpenseTracker.Domain.Email.Repository;
 using FluentValidation;
 using Hangfire;
-using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+
 
 namespace ExpenseTracker.Application.Authentication.AuthenticationServices;
 
@@ -36,6 +37,7 @@ public sealed class AuthenticationService : IAuthenticationService
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly ITokenService _tokenService;
     private readonly IDateProvider _dateProvider;
+    private readonly IVerificationTokenObserver _tokenObserver;
     private readonly IValidator<AddUserRequestDto> _addUserValidator;
     private readonly IValidator<LoginRequestDto> _loginValidator;
     private readonly IValidator<ResetPassRequestDto> _resetPasswordValidator;
@@ -51,6 +53,7 @@ public sealed class AuthenticationService : IAuthenticationService
         IBackgroundJobClient backgroundJobClient,
         ITokenService tokenService,
         IDateProvider dateProvider,
+        IVerificationTokenObserver tokenObserver,
         IValidator<AddUserRequestDto> addUserValidator,
         IValidator<LoginRequestDto> loginValidator,
         IValidator<ResetPassRequestDto> resetPasswordValidator
@@ -66,6 +69,7 @@ public sealed class AuthenticationService : IAuthenticationService
         _backgroundJobClient = backgroundJobClient;
         _tokenService = tokenService;
         _dateProvider = dateProvider;
+        _tokenObserver = tokenObserver;
         _addUserValidator = addUserValidator;
         _loginValidator = loginValidator;
         _resetPasswordValidator = resetPasswordValidator;
@@ -140,7 +144,9 @@ public sealed class AuthenticationService : IAuthenticationService
         Token verificationToken = _tokenService.GenerateToken(TokenDescriptionEnum.EmailVerificationToken, addedRecord.Id, ctoken);
         await _tokenRepository.AddToken(verificationToken, ctoken);
 
-        ScheduleVerificationEmail(request.Email, request.Firstname, verificationToken.TokenValue, addedRecord.Id);
+        _tokenObserver.OnTokenGenerated(addedRecord.Email, verificationToken.TokenValue);
+
+        ScheduleVerificationEmail(addedRecord.Email, addedRecord.Firstname, verificationToken.TokenValue, addedRecord.Id);
         EmailDelivery emailStatus = new EmailDelivery
         {
             UserId = addedRecord.Id,
@@ -164,12 +170,11 @@ public sealed class AuthenticationService : IAuthenticationService
         await _loginValidator.ValidateAndThrowAsync(request, ctoken);
 
         User? existingUser = await _userRepository.GetUserByEmail(request.Email, ctoken);
-        string requestHashedPassword = _passwordHasher.Hash(request.Password);
 
         if (existingUser is null)
             return AuthenticationErrors.InvalidArgs;
 
-        if (!existingUser.Password.Equals(requestHashedPassword))
+        if (!_passwordHasher.Verify(request.Password, existingUser.Password))
             return AuthenticationErrors.InvalidArgs;
 
         List<string> userPermissions = existingUser.Role.RolePermissions
@@ -197,12 +202,12 @@ public sealed class AuthenticationService : IAuthenticationService
 
     public async Task<ErrorOr<RefreshResponseDto>> RefreshToken(RefreshRequestDto request, CancellationToken ctoken = default)
     {
-        ClaimsPrincipal principal = _tokenValidator.Validate(request.RefreshToken);
+        var principal = _tokenValidator.Validate(request.RefreshToken);
 
-        if (principal.FindFirstValue("Typ") != TokenDescriptionEnum.RefreshToken.ToString())
+        if (principal.FindFirst(JwtRegisteredClaimNames.Typ)!.Value != TokenDescriptionEnum.RefreshToken.ToString())
             return AuthenticationErrors.Unauthorized;
 
-        Guid userExternalId = Guid.Parse(principal.FindFirst("Sub")!.Value);
+        Guid userExternalId = Guid.Parse(principal.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
         User? existingUser = await _userRepository.GetUserByExternalId(userExternalId, ctoken);
 
         List<string> userPermissions = existingUser.Role.RolePermissions

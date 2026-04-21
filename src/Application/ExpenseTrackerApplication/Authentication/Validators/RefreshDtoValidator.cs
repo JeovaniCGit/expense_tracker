@@ -3,7 +3,7 @@ using FluentValidation;
 
 namespace ExpenseTracker.Application.Authentication.Validators;
 
-internal sealed class RefreshDtoValidator : AbstractValidator<RefreshRequestDto>
+public sealed class RefreshDtoValidator : AbstractValidator<RefreshRequestDto>
 {
     public RefreshDtoValidator()
     {
