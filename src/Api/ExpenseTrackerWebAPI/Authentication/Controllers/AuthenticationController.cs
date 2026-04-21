@@ -46,14 +46,14 @@ public class AuthenticationController : ControllerBase
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
     [RequestTimeout("FastOperation")]
-    public async Task<ActionResult> Register([FromBody] AddUserRequestDto request, CancellationToken ctoken)
+    public async Task<ActionResult<AddUserResponseDto>> Register([FromBody] AddUserRequestDto request, CancellationToken ctoken)
     {
         ErrorOr<AddUserResponseDto> result = await _authenticationService.Register(request, ctoken);
 
         if (result.IsError)
             return result.Errors.MapToStatusCode();
 
-        return Ok();
+        return Ok(result.Value);
     }
 
 
@@ -81,7 +81,7 @@ public class AuthenticationController : ControllerBase
         Response.Cookies.Append("access_token", result.Value.AccessToken, _authCookieFactory.CreateAccessTokenCookie());
         Response.Cookies.Append("refresh_token", result.Value.RefreshToken, _authCookieFactory.CreateRefreshTokenCookie());
 
-        return Ok(result);
+        return Ok(result.Value);
     }
 
 
@@ -175,7 +175,7 @@ public class AuthenticationController : ControllerBase
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
     [RequestTimeout("FastOperation")]
-    public async Task<ActionResult> ResetPassword([FromQuery] string emailToken, CancellationToken ctoken)
+    public async Task<ActionResult> VerifyUser([FromQuery] string emailToken, CancellationToken ctoken)
     {
         ErrorOr<bool> result = await _authenticationService.MarkUserAsVerified(emailToken, ctoken);
 
