@@ -144,7 +144,7 @@ public class CategoriesController : ControllerBase
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryDelete)]
     [RequestTimeout("FastOperation")]
-    public async Task<ActionResult> Delete([FromQuery] string categoryExternalId, CancellationToken ctoken)
+    public async Task<ActionResult> Delete([FromRoute] string categoryExternalId, CancellationToken ctoken)
     {
         ErrorOr<int> result = await _categoryService.DeleteTransactionRecordCategory(categoryExternalId, ctoken);
 
