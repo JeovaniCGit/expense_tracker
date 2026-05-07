@@ -1,7 +1,8 @@
 ﻿namespace ExpenseTracker.Infrastructure.Authentication.JwtLib.Configuration;
 public sealed class JwtOptions
 {
-    public string SigningKey { get; set; } = null!;
+    public string AccessTokenSigningKey { get; set; } = null!;
+    public string RefreshTokenSigningKey { get; set; } = null!;
     public int AccessTokenExpiryMinutes { get; set; }
     public int RefreshTokenExpiryDays { get; set; }
     public string Issuer { get; set; } = null!;

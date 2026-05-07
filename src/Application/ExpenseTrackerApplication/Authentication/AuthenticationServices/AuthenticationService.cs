@@ -202,7 +202,7 @@ public sealed class AuthenticationService : IAuthenticationService
 
     public async Task<ErrorOr<RefreshResponseDto>> RefreshToken(RefreshRequestDto request, CancellationToken ctoken = default)
     {
-        var principal = _tokenValidator.Validate(request.RefreshToken);
+        var principal = _tokenValidator.Validate(request.RefreshToken, TokenDescriptionEnum.RefreshToken);
 
         if (principal.FindFirst(JwtRegisteredClaimNames.Typ)!.Value != TokenDescriptionEnum.RefreshToken.ToString())
             return AuthenticationErrors.Unauthorized;

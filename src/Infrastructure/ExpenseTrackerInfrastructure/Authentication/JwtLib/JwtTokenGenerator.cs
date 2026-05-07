@@ -21,7 +21,7 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
     {
         var tokenHandler = new JwtSecurityTokenHandler();
 
-        var key = Encoding.UTF8.GetBytes(_options.SigningKey);
+        var key = Convert.FromBase64String(_options.AccessTokenSigningKey);
 
         List<Claim> claims = new List<Claim>
         {
@@ -54,7 +54,7 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
     {
         var tokenHandler = new JwtSecurityTokenHandler();
 
-        var key = Encoding.UTF8.GetBytes(_options.SigningKey);
+        var key = Convert.FromBase64String(_options.RefreshTokenSigningKey);
 
         List<Claim> claims = new List<Claim>
         {
