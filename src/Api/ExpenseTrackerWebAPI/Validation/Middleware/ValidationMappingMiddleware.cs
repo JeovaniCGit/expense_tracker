@@ -22,11 +22,12 @@ public sealed class ValidationMappingMiddleware
             context.Response.StatusCode = 400;
             var validationFailureResponse = new ValidationFailureResponse
             {
-                Errors = ex.Errors.Select(e => new ValidationResponse
-                {
-                    PropertyName = e.PropertyName,
-                    Message = e.ErrorMessage
-                })
+                Errors = ex.Errors
+                    .GroupBy(e => e.PropertyName)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(e => e.ErrorMessage).ToList()
+                    )
             };
 
             await context.Response.WriteAsJsonAsync(validationFailureResponse);
