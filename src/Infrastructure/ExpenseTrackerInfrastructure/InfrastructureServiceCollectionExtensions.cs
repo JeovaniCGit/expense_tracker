@@ -106,7 +106,8 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.Configure<JwtOptions>(options =>
         {
-            options.SigningKey = configuration.GetValue<string>("JWT_SIGNINGKEY")!;
+            options.AccessTokenSigningKey = configuration.GetValue<string>("JWT_ACCESSTOKEN_SIGNINGKEY")!;
+            options.RefreshTokenSigningKey = configuration.GetValue<string>("JWT_REFRESHTOKEN_SIGNINGKEY")!;
             options.AccessTokenExpiryMinutes = configuration.GetValue<int>("JWT_ACCESSTOKEN_EXPIRYMINUTES");
             options.RefreshTokenExpiryDays = configuration.GetValue<int>("JWT_REFRESHTOKEN_EXPIRYDAYS");
             options.Issuer = configuration.GetValue<string>("JWT_ISSUER")!;

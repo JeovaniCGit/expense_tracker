@@ -18,6 +18,7 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
         });
     }
 
+    // These 2 methods won't be implemented because Hangfire as been disabled during testing
     protected void StubSendGridSuccess()
     {
         Factory.WireMockServer

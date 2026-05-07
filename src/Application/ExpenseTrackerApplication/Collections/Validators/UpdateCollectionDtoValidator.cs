@@ -13,7 +13,7 @@ public sealed class UpdateCollectionDtoValidator : AbstractValidator<UpdateColle
         RuleFor(c => c.Description)
             .NotEmpty()
             .When(c => c.Description is not null)
-            .MinimumLength(200)
+            .MinimumLength(10)
             .WithMessage("Collection must have a description.");
 
         RuleFor(u => u.EstimatedBudget)

@@ -66,7 +66,7 @@ public static class ApiSetupConfiguration
         {
             x.TokenValidationParameters = new TokenValidationParameters
             {
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT_SIGNINGKEY"]!)),
+                IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration["JWT_ACCESSTOKEN_SIGNINGKEY"]!)),
                 ValidateIssuerSigningKey = true,
                 ValidateLifetime = true,
                 ValidateIssuer = true,

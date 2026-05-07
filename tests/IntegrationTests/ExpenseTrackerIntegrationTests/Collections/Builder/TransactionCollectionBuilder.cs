@@ -1,4 +1,5 @@
 using Bogus;
+using ExpenseTracker.Application.Collections.Contracts.Requests;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Collections.Entity;
 using ExpenseTracker.Domain.Records.Entity;
@@ -21,7 +22,7 @@ public class TransactionCollectionBuilder
 
     public TransactionCollectionBuilder()
     {
-        _description = _faker.Lorem.Sentence();
+        _description = _faker.Lorem.Sentence(10);
         _estimatedBudget = _faker.Finance.Amount(100, 10000);
         _realBudget = _faker.Finance.Amount(50, 5000);
         _startDate = _faker.Date.PastOffset().ToUniversalTime();
@@ -98,6 +99,32 @@ public class TransactionCollectionBuilder
             EndDate = _endDate,
             User = _user,
             Records = _records
+        };
+    }
+
+    public AddCollectionRequestDto BuildAddCollectionRequestDto(string userExternalId)
+    {
+        return new AddCollectionRequestDto
+        {
+            Description = _description,
+            UserExternalId = userExternalId,
+            EstimatedBudget =  _estimatedBudget,
+            RealBudget = _realBudget,
+            StartDate = _startDate,
+            EndDate = _endDate
+        };
+    }
+    
+    public UpdateCollectionRequestDto BuildUpdateCollectionRequestDto(string collectionExternalId)
+    {
+        return new UpdateCollectionRequestDto()
+        {
+            Description = _description,
+            CollectionExternalId = collectionExternalId,
+            EstimatedBudget =  _estimatedBudget,
+            RealBudget = _realBudget,
+            StartDate = _startDate,
+            EndDate = _endDate
         };
     }
 }

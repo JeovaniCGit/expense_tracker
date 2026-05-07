@@ -181,7 +181,6 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
             existingCategory.CategoryName = request.CategoryName;
 
             return await _transactionRecordCategoryRepository.SaveChanges(ctoken);
-
         }
         catch (DbUpdateConcurrencyException ex)
         {

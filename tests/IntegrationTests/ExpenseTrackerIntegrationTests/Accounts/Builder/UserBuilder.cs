@@ -117,6 +117,17 @@ public class UserBuilder
             Password = GeneratePassword()
         };
     }
+    
+    public UpdateUserRequestDto BuildUpdateUserDto(string userExternalId)
+    {
+        return new UpdateUserRequestDto()
+        {
+            UserExternalId = userExternalId,
+            Firstname = _firstname,
+            Lastname = _lastname,
+            Email = _email
+        };
+    }
 
     public User Build()
     {

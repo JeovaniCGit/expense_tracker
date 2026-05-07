@@ -68,7 +68,7 @@ public class CollectionsController : ControllerBase
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionRead)]
     [RequestTimeout("FastOperation")]
-    public async Task<ActionResult<IEnumerable<GetCollectionResponseDto>>> Get([FromQuery] DateTimeOffset? startDate, [FromQuery] DateTimeOffset? endDate, CancellationToken ctoken)
+    public async Task<ActionResult<IEnumerable<GetCollectionResponseDto>>> Get([FromRoute] DateTimeOffset? startDate, [FromRoute] DateTimeOffset? endDate, CancellationToken ctoken)
     {
         ErrorOr<IEnumerable<GetCollectionResponseDto>> result = await _collectionService.GetAllUserCollections(startDate?? null, endDate?? null, ctoken);
 

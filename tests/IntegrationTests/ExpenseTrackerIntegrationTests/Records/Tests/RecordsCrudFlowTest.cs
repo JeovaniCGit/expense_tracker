@@ -7,6 +7,7 @@ using ExpenseTracker.Infrastructure.Database;
 using ExpenseTracker.IntegrationTests.Accounts.Builder;
 using ExpenseTracker.IntegrationTests.Categories.Builder;
 using ExpenseTracker.IntegrationTests.Collections.Builder;
+using ExpenseTracker.IntegrationTests.Records.Builder;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,17 +23,13 @@ public class RecordsCrudFlowTest : BaseIntegrationTest
         // Arrange - seed required data
         var (userExternalId, userId, collectionExternalId, categoryExternalId) = await SeedUserCollectionCategory();
 
-        var createRecordDto = new AddTransactionRecordRequestDto
-        {
-            TransactionValue = 5,
-            TransactionUserExternalId = userExternalId.ToString(),
-            TransactionCategoryExternalId = categoryExternalId.ToString(),
-            TransactionCollectionExternalId = collectionExternalId.ToString()
-        };
+        var createRecordDto = new TransactionRecordBuilder()
+            .BuildAddTransactionRecordRequestDto(userExternalId.ToString(), categoryExternalId.ToString(), collectionExternalId.ToString());
 
         // Act - create
         
-        //Simulate authentication by adding required headers (in a real scenario, we would obtain a JWT or cookie from the auth flow)
+        // Simulate authentication by adding required headers (in a real scenario, we would obtain a JWT or cookie from the auth flow)
+        // Authentication is bypassed here to focus on downstream flow
         Client.DefaultRequestHeaders.Add("X-UserId", userExternalId.ToString());
         Client.DefaultRequestHeaders.Add("X-UserPerm", 
             string.Join(",", new[] { PermissionNames.RecordWrite, PermissionNames.RecordRead, PermissionNames.RecordDelete }));
@@ -46,7 +43,7 @@ public class RecordsCrudFlowTest : BaseIntegrationTest
         addRecordResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         addRecordResponse.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
         var created = await addRecordResponse.Content.ReadFromJsonAsync<AddTransactionRecordResponseDto>();
-        var recordExternalId = created?.ExternalId ?? Guid.Empty;
+        var recordExternalId = created?.ExternalId ?? throw new InvalidOperationException("created MUST have a value");
 
         // Assert - create
         created.Should().NotBeNull();
@@ -63,18 +60,34 @@ public class RecordsCrudFlowTest : BaseIntegrationTest
         var recordsAfterCreate = await readRecordResponse.Content.ReadFromJsonAsync<List<GetTransactionRecordResponseDto>>();
 
         // Assert - read
-        recordsAfterCreate.Should().ContainSingle(r =>
-            r.TransactionExternalId == recordExternalId &&
-            r.TransactionCategoryExternalId == categoryExternalId);
-
-        // Act - update
-        var updateRecordDto = new UpdateTransactionRecordRequestDto
+        recordsAfterCreate.Should().NotBeEmpty();
+        
+        // Extract the value and assert that the item is the correct one
+        var recordAfterRead = recordsAfterCreate
+            .Should()
+            .ContainSingle(r => r.TransactionExternalId == recordExternalId)
+            .Which;
+    
+        // Map the values to the correct type
+        var expected = new
         {
-            TransactionExternalId = recordExternalId.ToString(),
-            TransactionCategoryExternalId = categoryExternalId.ToString(),
-            TransactionValue = 10
+            TransactionCategoryExternalId = Guid.Parse(createRecordDto.TransactionCategoryExternalId),
+            TransactionValue = recordAfterRead.TransactionValue,
+            TransactionCategoryName = recordAfterRead.TransactionCategoryName
         };
+        
+        // Assert the content of the item 
+        recordAfterRead.Should().BeEquivalentTo(expected, options => options
+            .Including(x => x.TransactionCategoryExternalId)
+            .Including(x => x.TransactionValue)
+            .Including(x => x.TransactionCategoryName)
+        );
 
+        // Arrange - update
+        var updateRecordDto = new TransactionRecordBuilder()
+            .BuildUpdateTransactionRecordRequestDto(categoryExternalId.ToString(), recordExternalId.ToString());
+        
+        // Act - update
         var updateRecordResponse = await Client.PutAsJsonAsync(
             $"/api/v1/accounts/me/records/{recordExternalId}",
             updateRecordDto,
@@ -82,8 +95,7 @@ public class RecordsCrudFlowTest : BaseIntegrationTest
         );
 
         updateRecordResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
-
-
+        
         var recordsAfterUpdateResponse = await Client.GetAsync(
             $"/api/v1/accounts/me/records/by-category?categoryExternalId={categoryExternalId}",
             CancellationToken.None
@@ -93,9 +105,18 @@ public class RecordsCrudFlowTest : BaseIntegrationTest
         var recordsAfterUpdate = await recordsAfterUpdateResponse.Content.ReadFromJsonAsync<List<GetTransactionRecordResponseDto>>();
 
         // Assert - update
-        recordsAfterUpdate.Should().ContainSingle(r =>
-            r.TransactionExternalId == recordExternalId &&
-            r.TransactionValue == updateRecordDto.TransactionValue);
+        recordsAfterUpdate.Should().NotBeEmpty();
+        
+        // Extract the value and assert that the item is the correct one
+        var recordAfterUpdate = recordsAfterUpdate
+            .Should()
+            .ContainSingle(r => r.TransactionExternalId == recordExternalId)
+            .Which;
+        
+        // Assert the content of the item 
+        recordAfterUpdate.Should().BeEquivalentTo(updateRecordDto, options => options
+            .Including(x => x.TransactionValue)
+        );
 
         // Act - delete
         var deleteRecordResponse = await Client.DeleteAsync(
@@ -104,8 +125,7 @@ public class RecordsCrudFlowTest : BaseIntegrationTest
         );
 
         deleteRecordResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
-
-
+        
         var recordsAfterDeleteResponse = await Client.GetAsync(
             $"/api/v1/accounts/me/records/by-category?categoryExternalId={categoryExternalId}",
             CancellationToken.None
@@ -127,21 +147,21 @@ public class RecordsCrudFlowTest : BaseIntegrationTest
         var user = new UserBuilder()
             .Build();
 
-        db.Users.Add(user);
+        await db.Users.AddAsync(user);
         await db.SaveChangesAsync();
 
         var collection = new TransactionCollectionBuilder()
             .WithUserId(user.Id)
             .Build();
 
-        db.Collections.Add(collection);
+        await db.Collections.AddAsync(collection);
         await db.SaveChangesAsync();
 
         var category = new TransactionRecordCategoryBuilder()
             .WithUserId(user.Id)
             .Build();
 
-        db.TransactionRecordCategories.Add(category);
+        await db.TransactionRecordCategories.AddAsync(category);
         await db.SaveChangesAsync();
 
         return (user.ExternalId, user.Id, collection.ExternalId, category.ExternalId);

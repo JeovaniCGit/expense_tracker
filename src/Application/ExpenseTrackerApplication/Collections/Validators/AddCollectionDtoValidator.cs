@@ -7,7 +7,7 @@ public sealed class AddCollectionDtoValidator : AbstractValidator<AddCollectionR
     public AddCollectionDtoValidator()
     {
         RuleFor(c => c.Description)
-            .MinimumLength(200)
+            .MinimumLength(10)
             .NotNull()
             .NotEmpty()
             .WithMessage("Collection must have a description.");

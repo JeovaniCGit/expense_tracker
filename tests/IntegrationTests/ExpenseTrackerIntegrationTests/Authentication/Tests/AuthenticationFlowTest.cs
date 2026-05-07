@@ -73,9 +73,8 @@ public class AuthenticationFlowTest : BaseIntegrationTest
         // Act - access protected endpoint
 
         //Simulate authentication by adding required headers (in a real scenario, we would obtain a JWT or cookie from the auth flow)
-        
+        // Authentication is bypassed here to focus on downstream flow
         Client.DefaultRequestHeaders.Add("X-UserId", registerContent.ExternalId.ToString());
-
         Client.DefaultRequestHeaders.Add("X-UserPerm", 
             string.Join(",", new[] { PermissionNames.CollectionRead }));
 

@@ -222,13 +222,12 @@ public sealed class TransactionRecordService : ITransactionRecordService
 
         if (existingRecord.TransactionUserId != currentUser!.Id)
             return TransactionRecordErrors.NotOwner;
-
-        existingRecord.TransactionValue = request.TransactionValue;
-
+        
         try
         {
+            existingRecord.TransactionValue = request.TransactionValue;
+            
             return await _transactionRecordRepository.SaveChanges(ctoken);
-
         }
         catch (DbUpdateConcurrencyException ex)
         {

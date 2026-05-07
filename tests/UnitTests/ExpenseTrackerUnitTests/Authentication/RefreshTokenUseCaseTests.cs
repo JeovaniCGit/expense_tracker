@@ -92,7 +92,7 @@ public class RefreshTokenUseCaseTests
         }));
 
         _tokenValidatorMock.Setup(
-            service => service.Validate(request.RefreshToken))
+            service => service.Validate(request.RefreshToken, TokenDescriptionEnum.RefreshToken))
         .Returns(claimsPrincipal);
 
         // Act
@@ -168,7 +168,7 @@ public class RefreshTokenUseCaseTests
         List<string>? capturedPermissions = null;
 
         _tokenValidatorMock.Setup(
-            service => service.Validate(request.RefreshToken))
+            service => service.Validate(request.RefreshToken, TokenDescriptionEnum.RefreshToken))
         .Returns(claimsPrincipal);
 
         _userRepositoryMock.Setup(
@@ -284,7 +284,7 @@ public class RefreshTokenUseCaseTests
         List<string>? capturedPermissions = null;
 
         _tokenValidatorMock.Setup(
-            service => service.Validate(request.RefreshToken))
+            service => service.Validate(request.RefreshToken, TokenDescriptionEnum.RefreshToken))
         .Returns(claimsPrincipal);
 
         _userRepositoryMock.Setup(
@@ -411,7 +411,7 @@ public class RefreshTokenUseCaseTests
         Token? capturedToken = null;
 
         _tokenValidatorMock.Setup(
-            service => service.Validate(request.RefreshToken))
+            service => service.Validate(request.RefreshToken, TokenDescriptionEnum.RefreshToken))
         .Returns(claimsPrincipal);
 
         _userRepositoryMock.Setup(
