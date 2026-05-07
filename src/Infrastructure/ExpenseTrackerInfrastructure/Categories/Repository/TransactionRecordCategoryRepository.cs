@@ -53,7 +53,7 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
 
     public async Task<TransactionRecordCategory?> GetTransactionsCategoryByExternalId(Guid externalId, CancellationToken ctoken = default)
     {
-        return await _context.TransactionRecordCategories.AsNoTracking().FirstOrDefaultAsync(tc => tc.ExternalId == externalId, ctoken);
+        return await _context.TransactionRecordCategories.FirstOrDefaultAsync(tc => tc.ExternalId == externalId, ctoken);
     }
 
     public async Task<int> SaveChanges(CancellationToken ctoken = default)

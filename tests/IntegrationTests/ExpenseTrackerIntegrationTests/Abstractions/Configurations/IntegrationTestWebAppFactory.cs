@@ -30,11 +30,13 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
     public IntegrationTestWebAppFactory()
     {
         Env.Load("../../../.env.test"); // Load environment variables from .env.Test file
+        
+        // This won't be used because Hangfire as been disabled during testing
         WireMockServer = WireMockServer.Start();
         WireMockUrl = WireMockServer.Urls[0];
     }
 
-    // WireMockServer instace
+    // WireMockServer and url (This won't be used because Hangfire as been disabled during testing)
     public WireMockServer WireMockServer { get; private set; }
     public string WireMockUrl { get; }
     public TestTokenObserver TokenObserver { get; } = new();
@@ -56,6 +58,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
             });
 
             // Remove existing ISendGridClient registration and replace it with a mock that points to the WireMock server
+            // This won't be used because Hangfire as been disabled during testing
             services.RemoveAll<ISendGridClient>();
 
             services.AddSingleton<ISendGridClient>(_ =>
@@ -68,6 +71,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
                 return new SendGridClient(httpClient, "fake-api-key");
             });
 
+            // Override needed services registration
             services.RemoveAll<IVerificationTokenObserver>();
             services.AddSingleton<IVerificationTokenObserver>(TokenObserver);
 

@@ -1,4 +1,5 @@
 using Bogus;
+using ExpenseTracker.Application.Records.Contracts.Requests;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Categories.Entity;
 using ExpenseTracker.Domain.Collections.Entity;
@@ -21,7 +22,7 @@ public class TransactionRecordBuilder
 
     public TransactionRecordBuilder()
     {
-        _transactionValue = _faker.Finance.Amount(1, 1000);
+        _transactionValue = _faker.Finance.Amount(1, 10000);
         _transactionUserId = 0;
         _transactionCategoryId = 0;
         _transactionCollectionId = 0;
@@ -91,6 +92,27 @@ public class TransactionRecordBuilder
             TransactionCategory = _transactionCategory,
             TransactionCollection = _transactionCollection,
             User = _user
+        };
+    }
+
+    public AddTransactionRecordRequestDto BuildAddTransactionRecordRequestDto(string userExternalId, string categoryExternalId, string collectionExternalId)
+    {
+        return new AddTransactionRecordRequestDto
+        {
+            TransactionValue =  _transactionValue,
+            TransactionUserExternalId = userExternalId,
+            TransactionCategoryExternalId = categoryExternalId,
+            TransactionCollectionExternalId = collectionExternalId
+        };
+    }
+    
+    public UpdateTransactionRecordRequestDto BuildUpdateTransactionRecordRequestDto(string categoryExternalId, string transactionExternalId)
+    {
+        return new UpdateTransactionRecordRequestDto
+        {
+            TransactionValue =  _transactionValue,
+            TransactionExternalId = transactionExternalId,
+            TransactionCategoryExternalId = categoryExternalId
         };
     }
 }

@@ -1,4 +1,5 @@
 using Bogus;
+using ExpenseTracker.Application.Categories.Contracts.Requests;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Categories.Entity;
 
@@ -46,6 +47,24 @@ public class TransactionRecordCategoryBuilder
             CategoryName = _categoryName,
             UserId = _userId,
             User = _user
+        };
+    }
+
+    public AddTransactionRecordCategoryRequestDto BuildAddTransactionRecordCategoryRequestDto(string userExternalId)
+    {
+        return new AddTransactionRecordCategoryRequestDto
+        {
+            CategoryName = _categoryName,
+            UserExternalId = userExternalId
+        };
+    }
+    
+    public UpdateTransactionRecordCategoryRequestDto BuildUpdateTransactionRecordCategoryRequestDto(string categoryExternalId)
+    {
+        return new UpdateTransactionRecordCategoryRequestDto
+        {
+            CategoryName = _categoryName,
+            CategoryExternalId = categoryExternalId
         };
     }
 }
