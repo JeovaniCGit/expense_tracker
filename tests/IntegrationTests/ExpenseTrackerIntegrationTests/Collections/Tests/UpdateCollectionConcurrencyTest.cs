@@ -32,23 +32,19 @@ public class UpdateCollectionConcurrencyTest : BaseIntegrationTest
             string.Join(",", new[] { PermissionNames.CollectionWrite }));
         
         // Act
+        var barrier = new Barrier(2);
+        
         var firstTask = Task.Run(async () =>
         {
-            return await SendRequest(updateDto);
+            return await SendRequest(updateDto, barrier);
         });
         
         var secondTask = Task.Run(async () =>
         {
-            return await SendRequest(updateDto);
+            return await SendRequest(updateDto, barrier);
         });
         
-        await Task.WhenAll(firstTask, secondTask);
-
-        var updateResponses = new HttpResponseMessage[]
-        {
-            await firstTask,
-            await secondTask
-        };
+        var updateResponses = await Task.WhenAll(firstTask, secondTask);
         
         // Assert
         updateResponses.Count(r => r.StatusCode == HttpStatusCode.NoContent)
@@ -79,8 +75,10 @@ public class UpdateCollectionConcurrencyTest : BaseIntegrationTest
         return (userSeed.ExternalId.ToString(), collectionSeed.ExternalId.ToString());
     }
     
-    private async Task<HttpResponseMessage> SendRequest(UpdateCollectionRequestDto request)
+    private async Task<HttpResponseMessage> SendRequest(UpdateCollectionRequestDto request, Barrier barrier)
     {
+        barrier.SignalAndWait();       
+        
         return await Client.PutAsJsonAsync(
             $"/api/v1/accounts/me/collections",
             request,
