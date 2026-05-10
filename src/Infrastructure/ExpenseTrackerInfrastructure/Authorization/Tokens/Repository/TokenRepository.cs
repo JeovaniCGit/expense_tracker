@@ -1,5 +1,6 @@
 ﻿using ExpenseTracker.Domain.Authorization.Tokens.Entity;
 using ExpenseTracker.Domain.Authorization.Tokens.Repository;
+using ExpenseTracker.Infrastructure.Abstractions;
 using ExpenseTracker.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace ExpenseTracker.Infrastructure.Authorization.Tokens.Repository;
 public class TokenRepository : ITokenRepository
 {
     private readonly ApplicationDbContext _context;
+    private readonly DateProvider _dateProvider = new();
     public TokenRepository(ApplicationDbContext context)
     {
         _context = context;
@@ -31,7 +33,7 @@ public class TokenRepository : ITokenRepository
     {
         //For now since the tokens will be hard deleted will keep ExecuteDeleteAsync
         //Later if Soft delete is required, use RemoveRange version
-        DateTime now = DateTime.UtcNow;
+        DateTimeOffset now = _dateProvider.Now;
         await _context.Tokens
             .Where(t => t.CreatedAt.AddMinutes(t.TokenType.TimeToLiveInMinutes) < now || t.IsUsed == true)
             .ExecuteDeleteAsync();

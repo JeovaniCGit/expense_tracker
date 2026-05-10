@@ -3,7 +3,7 @@ using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 
 public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>
-    {
+{
     protected readonly HttpClient Client;
     protected readonly IntegrationTestWebAppFactory Factory;
 

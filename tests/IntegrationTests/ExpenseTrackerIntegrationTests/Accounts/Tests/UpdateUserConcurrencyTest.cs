@@ -31,23 +31,19 @@ public class UpdateUserConcurrencyTest : BaseIntegrationTest
             string.Join(",", new[] { PermissionNames.UserWrite }));
         
         // Act 
+        var barrier = new Barrier(2);
+        
         var firstTask = Task.Run(async () =>
         {
-            return await SendRequest(firstUpdateDto);
+            return await SendRequest(firstUpdateDto, barrier);
         });
         
         var secondTask = Task.Run(async () =>
         {
-            return await SendRequest(secondUpdateDto);
+            return await SendRequest(secondUpdateDto, barrier);
         });
         
-        await Task.WhenAll(firstTask, secondTask);
-
-        var updateResponses = new HttpResponseMessage []
-        {
-            await firstTask,
-            await secondTask
-        };
+        var updateResponses = await Task.WhenAll(firstTask, secondTask);
         
         // Assert
         updateResponses.Count(r => r.StatusCode == HttpStatusCode.NoContent)
@@ -77,8 +73,10 @@ public class UpdateUserConcurrencyTest : BaseIntegrationTest
         return (userSeed.ExternalId.ToString(), firstUpdateDto, secondUpdateDto);
     }
 
-    private async Task<HttpResponseMessage> SendRequest(UpdateUserRequestDto request)
+    private async Task<HttpResponseMessage> SendRequest(UpdateUserRequestDto request, Barrier barrier)
     {
+        barrier.SignalAndWait();     
+        
         return await Client.PutAsJsonAsync(
             $"/api/v1/accounts",
             request,

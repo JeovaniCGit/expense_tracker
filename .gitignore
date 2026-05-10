@@ -6,6 +6,7 @@
 # dotenv files
 .env
 .env.test
+**/.env*
 
 # bin & obj folders
 bin/
