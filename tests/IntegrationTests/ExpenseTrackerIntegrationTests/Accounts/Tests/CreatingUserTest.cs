@@ -23,12 +23,12 @@ public class CreatingUserTest : BaseIntegrationTest
 
         // Act
         var response = await Client.PostAsJsonAsync(
-            "/api/v1/accounts",
+            "/api/v1/auth/register",
             userDto,
             CancellationToken.None
         );
 
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
 
         var raw = await response.Content.ReadAsStringAsync();

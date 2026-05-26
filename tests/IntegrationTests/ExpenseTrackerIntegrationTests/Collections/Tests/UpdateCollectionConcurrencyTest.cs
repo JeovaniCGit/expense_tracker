@@ -6,6 +6,7 @@ using ExpenseTracker.Infrastructure.Database;
 using ExpenseTracker.IntegrationTests.Accounts.Builder;
 using ExpenseTracker.IntegrationTests.Collections.Builder;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpenseTracker.IntegrationTests.Collections.Tests;
@@ -17,44 +18,33 @@ public class UpdateCollectionConcurrencyTest : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task UpdateCollectionOnConcurrentRequest_ShouldFail()
+    public async Task UpdateRecordOnConcurrentWriteOperation_ShouldFail()
     {
-        // Arrange
-        var (userExternalId, collectionExternalId) = await SeedCollectionAndUserData();
+        var collectionId= await SeedCollectionData();
         
-        var updateDto = new TransactionCollectionBuilder()
-            .BuildUpdateCollectionRequestDto(collectionExternalId);
+        using var firstScope = Factory.Services.CreateScope();
+        var firstDbContext = firstScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
-        //Simulate authentication by adding required headers (in a real scenario, we would obtain a JWT or cookie from the auth flow)
-        // Authentication is bypassed here to focus on downstream flow
-        Client.DefaultRequestHeaders.Add("X-UserId", userExternalId.ToString());
-        Client.DefaultRequestHeaders.Add("X-UserPerm", 
-            string.Join(",", new[] { PermissionNames.CollectionWrite }));
+        using var secondScope = Factory.Services.CreateScope();
+        var secondDbContext = secondScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var collectionOriginalRead = await firstDbContext.Collections.FindAsync(collectionId);
+        var collectionSecondRead = await secondDbContext.Collections.FindAsync(collectionId);
+
+        collectionOriginalRead.Description = "January 2023";
+        await firstDbContext.SaveChangesAsync();
+
+        collectionSecondRead.Description = "January 2025";
         
-        // Act
-        var barrier = new Barrier(2);
+        await FluentActions.Awaiting(() => secondDbContext.SaveChangesAsync())
+            .Should()
+            .ThrowAsync<DbUpdateConcurrencyException>();
         
-        var firstTask = Task.Run(async () =>
-        {
-            return await SendRequest(updateDto, barrier);
-        });
-        
-        var secondTask = Task.Run(async () =>
-        {
-            return await SendRequest(updateDto, barrier);
-        });
-        
-        var updateResponses = await Task.WhenAll(firstTask, secondTask);
-        
-        // Assert
-        updateResponses.Count(r => r.StatusCode == HttpStatusCode.NoContent)
-            .Should().Be(1);
-        
-        updateResponses.Count(r => r.StatusCode == HttpStatusCode.Conflict)
-            .Should().Be(1);
+        var firstWriteResult = await firstDbContext.Collections.FindAsync(collectionId);
+        firstWriteResult.Description.Should().Be(collectionOriginalRead.Description);
     }
 
-    private async Task<(string, string)> SeedCollectionAndUserData()
+    private async Task<long> SeedCollectionData()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -72,17 +62,6 @@ public class UpdateCollectionConcurrencyTest : BaseIntegrationTest
         await db.Collections.AddAsync(collectionSeed);
         await db.SaveChangesAsync();
         
-        return (userSeed.ExternalId.ToString(), collectionSeed.ExternalId.ToString());
-    }
-    
-    private async Task<HttpResponseMessage> SendRequest(UpdateCollectionRequestDto request, Barrier barrier)
-    {
-        barrier.SignalAndWait();       
-        
-        return await Client.PutAsJsonAsync(
-            $"/api/v1/accounts/me/collections",
-            request,
-            CancellationToken.None
-        );
+        return collectionSeed.Id;
     }
 }

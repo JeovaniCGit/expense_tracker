@@ -65,19 +65,19 @@ public class CategoriesCrudFlowTest : BaseIntegrationTest
         categoriesAfterCreate.Should().NotBeEmpty();
         
         // Extract the value and assert that the item is the correct one
-        var categoriesAfterRead = categoriesAfterCreate
+        var categoryAfterRead = categoriesAfterCreate
             .Should()
             .ContainSingle(c => c.CategoryExternalId == categoryExternalId)
             .Which;
         
         // Assert the content of the item 
-        categoriesAfterRead.Should().BeEquivalentTo(createCategoryDto, options => options
+        categoryAfterRead.Should().BeEquivalentTo(createCategoryDto, options => options
             .Including(x => x.CategoryName)
         );
         
         // Arrange - update
         var updateCategoryDto = new TransactionRecordCategoryBuilder()
-            .BuildUpdateTransactionRecordCategoryRequestDto(categoryExternalId.ToString());
+            .BuildUpdateTransactionRecordCategoryRequestDto(categoryExternalId.ToString(), categoryAfterRead.Version);
         
         // Act - update
         var updateCategoryResponse = await Client.PutAsJsonAsync(

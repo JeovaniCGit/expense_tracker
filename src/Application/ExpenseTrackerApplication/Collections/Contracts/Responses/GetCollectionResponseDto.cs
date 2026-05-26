@@ -9,4 +9,5 @@ public sealed record GetCollectionResponseDto
     public required decimal RealBudget { get; init; }
     public required DateTimeOffset StartDate { get; init; }
     public required DateTimeOffset EndDate { get; init; }
+    public required uint Version { get; init; }
 }

@@ -7,6 +7,7 @@ public class TransactionRecordCategory : AuditEntity
 {
     public string CategoryName { get; set; }
     public long UserId { get; set; }
+    public uint Version { get; set; }
     public User User { get; set; }
 
     public TransactionRecordCategory() { }

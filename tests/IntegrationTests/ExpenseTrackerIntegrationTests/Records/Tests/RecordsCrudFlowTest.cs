@@ -85,7 +85,7 @@ public class RecordsCrudFlowTest : BaseIntegrationTest
 
         // Arrange - update
         var updateRecordDto = new TransactionRecordBuilder()
-            .BuildUpdateTransactionRecordRequestDto(categoryExternalId.ToString(), recordExternalId.ToString());
+            .BuildUpdateTransactionRecordRequestDto(categoryExternalId.ToString(), recordExternalId.ToString(), recordAfterRead.Version);
         
         // Act - update
         var updateRecordResponse = await Client.PutAsJsonAsync(

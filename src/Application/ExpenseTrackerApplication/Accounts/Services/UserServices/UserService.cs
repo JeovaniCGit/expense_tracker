@@ -43,37 +43,6 @@ public sealed class UserService : IUserService
         _currentUserService = currentUserService;
     }
 
-    public async Task<ErrorOr<AddUserResponseDto>> CreateUser(AddUserRequestDto request, CancellationToken ctoken = default)
-    {
-        await _addUserValidator.ValidateAndThrowAsync(request, ctoken);
-
-        try
-        {
-            User newUser = new User
-            {
-                Firstname = request.Firstname,
-                Lastname = request.Lastname,
-                Email = request.Email,
-                Password = _passwordHasher.Hash(request.Password),
-                RoleId = (long)UserRoleEnum.RegularUser
-            };
-
-            User createdUser = await _userRepository.CreateUser(newUser, ctoken);
-
-            return new AddUserResponseDto
-            {
-                ExternalId = createdUser.ExternalId,
-                Firstname = createdUser.Firstname,
-                Lastname = createdUser.Lastname,
-                CreatedAt = createdUser.CreatedAt
-            };
-
-        } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
-        {
-            return UserErrors.DuplicatedEntry;
-        }
-    }
-
     public async Task<ErrorOr<int>> DeleteUser(string externalId, CancellationToken ctoken = default)
     {
         Guid currentUserExternalId = _currentUserService.UserExternalId;
@@ -114,7 +83,8 @@ public sealed class UserService : IUserService
             UserExternalId = existingUser.ExternalId,
             Firstname = existingUser.Firstname,
             Lastname = existingUser.Lastname,
-            Email = existingUser.Email
+            Email = existingUser.Email,
+            Version = existingUser.Version
         };
     }
 

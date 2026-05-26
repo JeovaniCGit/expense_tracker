@@ -67,13 +67,9 @@ public sealed class TransactionRecordService : ITransactionRecordService
         if (existingCollectionId is null)
             return TransactionRecordErrors.InvalidArgs;
 
-        IEnumerable<TransactionRecordCategory> defaultCategories = await _transactionRecordCategoryRepository.GetAllTransactionsCategories(ctoken);
         IEnumerable<TransactionRecordCategory> userCategories = await _transactionRecordCategoryRepository.GetAllUserTransactionCategories(existingUser.Id, ctoken);
 
         long? existingCategoryId = userCategories.Where(tc => tc.ExternalId == Guid.Parse(request.TransactionCategoryExternalId)).Select(tc => tc.Id).FirstOrDefault();
-
-        if (existingCategoryId is null || existingCategoryId == 0)
-            existingCategoryId = defaultCategories.Where(tc => tc.ExternalId == Guid.Parse(request.TransactionCategoryExternalId)).Select(tc => tc.Id).FirstOrDefault();
 
         if (existingCategoryId is null || existingCategoryId == 0)
             return TransactionRecordErrors.InvalidArgs;
@@ -94,7 +90,8 @@ public sealed class TransactionRecordService : ITransactionRecordService
             {
                 TransactionValue = addedRecord.TransactionValue,
                 CreatedAt = addedRecord.CreatedAt,
-                ExternalId = addedRecord.ExternalId
+                ExternalId = addedRecord.ExternalId,
+                Version = addedRecord.Version
             };
         } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
@@ -139,7 +136,8 @@ public sealed class TransactionRecordService : ITransactionRecordService
             TransactionValue = tr.TransactionValue,
             TransactionExternalId = tr.ExternalId,
             TransactionCategoryExternalId = Guid.Parse(categoryExternalId),
-            TransactionCategoryName = tr.TransactionCategory.CategoryName
+            TransactionCategoryName = tr.TransactionCategory.CategoryName,
+            Version = tr.Version
         }).ToList();
     }
 
@@ -257,7 +255,8 @@ public sealed class TransactionRecordService : ITransactionRecordService
             TransactionValue = r.TransactionValue,
             TransactionExternalId = r.ExternalId,
             TransactionCategoryExternalId = r.TransactionCategory.ExternalId,
-            TransactionCategoryName = r.TransactionCategory.CategoryName
+            TransactionCategoryName = r.TransactionCategory.CategoryName,
+            Version = r.Version
         }).ToList();
     }
 }

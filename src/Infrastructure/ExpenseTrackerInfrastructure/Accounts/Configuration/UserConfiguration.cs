@@ -1,4 +1,6 @@
-﻿using ExpenseTracker.Domain.Accounts.Entity;
+﻿using ExpenseTracker.Application.Abstractions.GuidSeeder;
+using ExpenseTracker.Application.Authorization.UserRoles.Enums;
+using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Infrastructure.Base.Configuration;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -54,7 +56,7 @@ internal sealed class UserConfiguration : BaseEntityConfiguration<User>
 
         builder.HasQueryFilter(p => !p.IsDeleted);
 
-        builder.Property<uint>("xmin")
+        builder.Property(p => p.Version)
             .IsRowVersion();
     }
 }

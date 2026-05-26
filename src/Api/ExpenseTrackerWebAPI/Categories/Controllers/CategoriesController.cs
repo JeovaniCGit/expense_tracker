@@ -6,6 +6,7 @@ using ExpenseTracker.Application.Authorization.Perms.Attributes;
 using ExpenseTracker.Application.Categories.Contracts.Requests;
 using ExpenseTracker.Application.Categories.Contracts.Responses;
 using ExpenseTracker.Application.Categories.Services;
+using ExpenseTracker.Application.Validation.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
@@ -35,11 +36,11 @@ public class CategoriesController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>The newly created category.</returns>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(AddTransactionRecordCategoryResponseDto), 201)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 409)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryWrite)]
     [RequestTimeout("FastOperation")]
@@ -60,10 +61,10 @@ public class CategoriesController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>List of transaction record categories.</returns>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(IEnumerable<GetTransactionRecordCategoryResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryRead)]
     [RequestTimeout("FastOperation")]
@@ -85,11 +86,11 @@ public class CategoriesController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>No content if the update succeeds.</returns>
     [HttpPut("{categoryExternalId}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 204)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryWrite)]
     [RequestTimeout("FastOperation")]
@@ -111,11 +112,11 @@ public class CategoriesController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>No content if all updates succeed.</returns>
     [HttpPut]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 204)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryWrite)]
     [RequestTimeout("FastOperation")]
@@ -137,10 +138,10 @@ public class CategoriesController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>No content if deletion succeeds.</returns>
     [HttpDelete("{categoryExternalId}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 204)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CategoryDelete)]
     [RequestTimeout("FastOperation")]

@@ -180,17 +180,6 @@ public class AddTransactionRecordUseCaseTests
             TransactionValue = 2,
         };
 
-        var existingDefaultCategories = new List<TransactionRecordCategory>()
-        {
-            new TransactionRecordCategory
-            {
-                Id = 5,
-                CategoryName = "Banking",
-                UserId = 2,
-                ExternalId = Guid.NewGuid(),
-            }
-        };
-
         var existingCollectionId = 1;
 
         User existingUser = new User
@@ -236,11 +225,6 @@ public class AddTransactionRecordUseCaseTests
         .ReturnsAsync(existingCollectionId);
 
         _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetAllTransactionsCategories(
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingDefaultCategories);
-
-        _transactionRecordCategoryRepositoryMock.Setup(
             repo => repo.GetAllUserTransactionCategories(
                 It.IsAny<long>(), 
                 It.IsAny<CancellationToken>()))
@@ -268,12 +252,6 @@ public class AddTransactionRecordUseCaseTests
         );
 
         _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetAllTransactionsCategories(
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-
-        _transactionRecordCategoryRepositoryMock.Verify(
             repo => repo.GetAllUserTransactionCategories(
                 existingUser.Id, 
                 It.IsAny<CancellationToken>()),
@@ -291,16 +269,6 @@ public class AddTransactionRecordUseCaseTests
             TransactionCollectionExternalId = Guid.NewGuid().ToString(),
             TransactionUserExternalId = Guid.NewGuid().ToString(),
             TransactionValue = 2,
-        };
-
-        var existingDefaultCategories = new List<TransactionRecordCategory>()
-        {
-            new TransactionRecordCategory
-            {
-                CategoryName = "Banking",
-                UserId = 2,
-                ExternalId = Guid.NewGuid(),
-            }
         };
 
         var existingUserCategories = new List<TransactionRecordCategory>()
@@ -356,11 +324,7 @@ public class AddTransactionRecordUseCaseTests
                 It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingCollectionId);
-
-        _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetAllTransactionsCategories(
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(It.IsAny<IEnumerable<TransactionRecordCategory>>());
+        
 
         _transactionRecordCategoryRepositoryMock.Setup(
             repo => repo.GetAllUserTransactionCategories(
@@ -399,12 +363,6 @@ public class AddTransactionRecordUseCaseTests
                 It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()),
                 Times.Once
-        );
-
-        _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetAllTransactionsCategories(
-                It.IsAny<CancellationToken>()),
-            Times.Once
         );
 
         _transactionRecordCategoryRepositoryMock.Verify(

@@ -84,7 +84,7 @@ public class CollectionsCrudFlowTest : BaseIntegrationTest
         
         // Arrange - update
         var updateCollectionDto = new TransactionCollectionBuilder()
-            .BuildUpdateCollectionRequestDto(collectionExternalId.ToString());
+            .BuildUpdateCollectionRequestDto(collectionExternalId.ToString(), result.Version);
         
         // Act - update
         var updateCollectionResponse = await Client.PutAsJsonAsync(

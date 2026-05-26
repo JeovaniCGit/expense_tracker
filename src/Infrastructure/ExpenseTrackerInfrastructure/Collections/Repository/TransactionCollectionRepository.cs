@@ -32,7 +32,10 @@ internal class TransactionCollectionRepository : ITransactionCollectionRepositor
 
     public async Task<long?> GetCollectionIdByExternalId(Guid externalId, CancellationToken ctoken = default)
     {
-        return await _context.Collections.AsNoTracking().Where(c => c.ExternalId == externalId).Select(c => c.Id).FirstOrDefaultAsync();
+        return await _context.Collections.AsNoTracking()
+            .Where(c => c.ExternalId == externalId)
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<TransactionCollection?> GetCollectionByExternalId(Guid externalId, CancellationToken ctoken = default)

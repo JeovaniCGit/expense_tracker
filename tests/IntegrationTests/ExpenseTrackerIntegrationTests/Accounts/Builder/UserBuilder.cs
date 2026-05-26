@@ -118,14 +118,15 @@ public class UserBuilder
         };
     }
     
-    public UpdateUserRequestDto BuildUpdateUserDto(string userExternalId)
+    public UpdateUserRequestDto BuildUpdateUserDto(string userExternalId, uint version)
     {
         return new UpdateUserRequestDto()
         {
             UserExternalId = userExternalId,
             Firstname = _firstname,
             Lastname = _lastname,
-            Email = _email
+            Email = _email,
+            Version = version
         };
     }
 

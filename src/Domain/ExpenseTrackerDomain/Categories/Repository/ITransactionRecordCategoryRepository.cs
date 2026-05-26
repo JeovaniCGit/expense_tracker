@@ -5,14 +5,11 @@ public interface ITransactionRecordCategoryRepository
 {
     Task<TransactionRecordCategory> AddTransactionCategory(TransactionRecordCategory transactionCategory, CancellationToken ctoken = default);
 
-    Task<IEnumerable<TransactionRecordCategory>> GetAllTransactionsCategories(CancellationToken ctoken = default);
-
     Task<long?> GetTransactionCategoryIdByExternalId(Guid externalId, CancellationToken ctoken = default);
 
     Task<TransactionRecordCategory?> GetTransactionsCategoryByExternalId(Guid externalId, CancellationToken ctoken = default);
 
     Task<int> DeleteTransactionCategory(TransactionRecordCategory transactionCategory, CancellationToken ctoken = default);
-
 
     Task<int> SaveChanges(CancellationToken ctoken = default);
 

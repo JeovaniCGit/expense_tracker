@@ -6,6 +6,7 @@ using ExpenseTracker.Application.Authorization.Perms.Attributes;
 using ExpenseTracker.Application.Collections.Contracts.Requests;
 using ExpenseTracker.Application.Collections.Contracts.Responses;
 using ExpenseTracker.Application.Collections.Services;
+using ExpenseTracker.Application.Validation.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
@@ -34,11 +35,11 @@ public class CollectionsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>The newly created collection.</returns>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(AddCollectionResponseDto), 201)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 409)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionWrite)]
     [RequestTimeout("FastOperation")]
@@ -61,10 +62,10 @@ public class CollectionsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>List of user collections.</returns>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(IEnumerable<GetCollectionResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionRead)]
     [RequestTimeout("FastOperation")]
@@ -86,11 +87,11 @@ public class CollectionsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>No content if update succeeds.</returns>
     [HttpPut]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 204)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionWrite)]
     [RequestTimeout("FastOperation")]
@@ -112,11 +113,11 @@ public class CollectionsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>No content if deletion succeeds.</returns>
     [HttpDelete("{collectionExternalId}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 204)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.CollectionDelete)]
     [RequestTimeout("FastOperation")]

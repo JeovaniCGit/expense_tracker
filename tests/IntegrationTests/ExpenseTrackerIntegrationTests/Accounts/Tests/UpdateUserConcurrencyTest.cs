@@ -8,6 +8,7 @@ using ExpenseTracker.Application.Authorization.Perms.Attributes;
 using ExpenseTracker.Infrastructure.Database;
 using ExpenseTracker.IntegrationTests.Accounts.Builder;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpenseTracker.IntegrationTests.Accounts.Tests;
@@ -17,43 +18,35 @@ public class UpdateUserConcurrencyTest : BaseIntegrationTest
     public UpdateUserConcurrencyTest(IntegrationTestWebAppFactory factory) : base(factory)
     {
     }
-
+    
     [Fact]
-    public async Task UpdateUserOnConcurrentRequest_ShouldFail()
+    public async Task UpdateRecordOnConcurrentWriteOperation_ShouldFail()
     {
-        // Arrange
-        var (userExternalId, firstUpdateDto, secondUpdateDto) = await SeedUserData();
+        var userId= await SeedUserData();
         
-        //Simulate authentication by adding required headers (in a real scenario, we would obtain a JWT or cookie from the auth flow)
-        // Authentication is bypassed here to focus on downstream flow
-        Client.DefaultRequestHeaders.Add("X-UserId", userExternalId.ToString());
-        Client.DefaultRequestHeaders.Add("X-UserPerm", 
-            string.Join(",", new[] { PermissionNames.UserWrite }));
+        using var firstScope = Factory.Services.CreateScope();
+        var firstDbContext = firstScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
-        // Act 
-        var barrier = new Barrier(2);
-        
-        var firstTask = Task.Run(async () =>
-        {
-            return await SendRequest(firstUpdateDto, barrier);
-        });
-        
-        var secondTask = Task.Run(async () =>
-        {
-            return await SendRequest(secondUpdateDto, barrier);
-        });
-        
-        var updateResponses = await Task.WhenAll(firstTask, secondTask);
-        
-        // Assert
-        updateResponses.Count(r => r.StatusCode == HttpStatusCode.NoContent)
-            .Should().Be(1);
+        using var secondScope = Factory.Services.CreateScope();
+        var secondDbContext = secondScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        updateResponses.Count(r => r.StatusCode == HttpStatusCode.Conflict)
-            .Should().Be(1);
+        var userOriginalRead = await firstDbContext.Users.FindAsync(userId);
+        var userSecondRead = await secondDbContext.Users.FindAsync(userId);
+
+        userOriginalRead.Firstname = "Brian";
+        await firstDbContext.SaveChangesAsync();
+
+        userSecondRead.Firstname = "Ron";
+        
+        await FluentActions.Awaiting(() => secondDbContext.SaveChangesAsync())
+            .Should()
+            .ThrowAsync<DbUpdateConcurrencyException>();
+        
+        var firstWriteResult = await firstDbContext.Users.FindAsync(userId);
+        firstWriteResult.Firstname.Should().Be(userOriginalRead.Firstname);
     }
-
-    private async Task<(string, UpdateUserRequestDto, UpdateUserRequestDto)> SeedUserData()
+    
+    private async Task<long> SeedUserData()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -65,22 +58,11 @@ public class UpdateUserConcurrencyTest : BaseIntegrationTest
         await db.SaveChangesAsync();
         
         var firstUpdateDto = new UserBuilder()
-            .BuildUpdateUserDto(userSeed.ExternalId.ToString());
+            .BuildUpdateUserDto(userSeed.ExternalId.ToString(), userSeed.Version);
         
         var secondUpdateDto = new UserBuilder()
-            .BuildUpdateUserDto(userSeed.ExternalId.ToString());
+            .BuildUpdateUserDto(userSeed.ExternalId.ToString(), userSeed.Version);
 
-        return (userSeed.ExternalId.ToString(), firstUpdateDto, secondUpdateDto);
-    }
-
-    private async Task<HttpResponseMessage> SendRequest(UpdateUserRequestDto request, Barrier barrier)
-    {
-        barrier.SignalAndWait();     
-        
-        return await Client.PutAsJsonAsync(
-            $"/api/v1/accounts",
-            request,
-            CancellationToken.None
-        );
+        return userSeed.Id;
     }
 }

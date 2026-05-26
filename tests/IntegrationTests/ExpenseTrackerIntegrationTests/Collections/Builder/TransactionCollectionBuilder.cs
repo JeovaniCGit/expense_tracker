@@ -115,7 +115,7 @@ public class TransactionCollectionBuilder
         };
     }
     
-    public UpdateCollectionRequestDto BuildUpdateCollectionRequestDto(string collectionExternalId)
+    public UpdateCollectionRequestDto BuildUpdateCollectionRequestDto(string collectionExternalId, uint version)
     {
         return new UpdateCollectionRequestDto()
         {
@@ -124,7 +124,8 @@ public class TransactionCollectionBuilder
             EstimatedBudget =  _estimatedBudget,
             RealBudget = _realBudget,
             StartDate = _startDate,
-            EndDate = _endDate
+            EndDate = _endDate,
+            Version = version
         };
     }
 }

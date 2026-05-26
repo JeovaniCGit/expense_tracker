@@ -8,6 +8,7 @@ using ExpenseTracker.Application.Accounts.Contracts.Responses;
 using ExpenseTracker.Application.Authentication.AuthenticationServices;
 using ExpenseTracker.Application.Authentication.Contracts.Request;
 using ExpenseTracker.Application.Authentication.Contracts.Response;
+using ExpenseTracker.Application.Validation.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
@@ -38,11 +39,11 @@ public class AuthenticationController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>HTTP 200 OK if registration succeeds.</returns>
     [HttpPost("register")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(AddUserResponseDto), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 409)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
     [RequestTimeout("FastOperation")]
@@ -64,10 +65,10 @@ public class AuthenticationController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>Login response including tokens.</returns>
     [HttpPost("login")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(LoginResponseDto), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
     [RequestTimeout("FastOperation")]
@@ -92,10 +93,10 @@ public class AuthenticationController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>New access and refresh tokens.</returns>
     [HttpPost("refresh")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(RefreshResponseDto), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
     [RequestTimeout("FastOperation")]
@@ -120,10 +121,10 @@ public class AuthenticationController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>HTTP 200 OK if email sent successfully.</returns>
     [HttpPost("forgot-password")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ActionResult), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
     [RequestTimeout("FastOperation")]
@@ -143,10 +144,10 @@ public class AuthenticationController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>HTTP 200 OK if password reset succeeds.</returns>
     [HttpPost("reset-password")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ActionResult), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
     [RequestTimeout("FastOperation")]
@@ -168,10 +169,10 @@ public class AuthenticationController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>HTTP 200 OK if user is successfully verified.</returns>
     [HttpPost("verify-user")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ActionResult), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AnonymousUser)]
     [AllowAnonymous]
     [RequestTimeout("FastOperation")]

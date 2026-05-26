@@ -56,7 +56,7 @@ internal sealed class TransactionCollectionConfiguration : BaseEntityConfigurati
 
         builder.HasQueryFilter(tc => !tc.User.IsDeleted && !tc.IsDeleted);
 
-        builder.Property<uint>("xmin")
+        builder.Property(p => p.Version)
             .IsRowVersion();
     }
 }

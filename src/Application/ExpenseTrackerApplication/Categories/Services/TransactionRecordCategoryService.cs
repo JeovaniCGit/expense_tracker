@@ -64,6 +64,7 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
                 CategoryExternalId = addedCategory.ExternalId,
                 CategoryName = addedCategory.CategoryName,
                 CreatedAt = addedCategory.CreatedAt,
+                Version = addedCategory.Version
             };
         }
         catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
@@ -102,7 +103,8 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
         return userCategories.Select(uc => new GetTransactionRecordCategoryResponseDto
         {
             CategoryName = uc.CategoryName,
-            CategoryExternalId = uc.ExternalId
+            CategoryExternalId = uc.ExternalId,
+            Version = uc.Version
         }).ToList();
     }
 

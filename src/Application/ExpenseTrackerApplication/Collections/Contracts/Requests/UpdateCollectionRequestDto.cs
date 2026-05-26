@@ -7,4 +7,5 @@ public sealed record UpdateCollectionRequestDto
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? EndDate { get; init; }
     public required string CollectionExternalId { get; init; }
+    public required uint Version { get; init; }
 }

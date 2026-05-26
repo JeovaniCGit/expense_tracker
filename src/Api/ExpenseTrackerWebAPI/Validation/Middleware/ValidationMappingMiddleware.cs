@@ -1,4 +1,4 @@
-﻿using ExpenseTracker.Application.Accounts.Contracts.Responses;
+﻿using ExpenseTracker.Application.Validation.Contracts;
 using FluentValidation;
 
 namespace ExpenseTracker.API.Validation.Middleware;
@@ -20,14 +20,16 @@ public sealed class ValidationMappingMiddleware
         catch (ValidationException ex)
         {
             context.Response.StatusCode = 400;
-            var validationFailureResponse = new ValidationFailureResponse
+            var validationFailureResponse = new ApiErrorResponse
             {
                 Errors = ex.Errors
                     .GroupBy(e => e.PropertyName)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(e => e.ErrorMessage).ToList()
-                    )
+                    .Select(item => new ApiError
+                        {
+                            Code = context.Response.StatusCode,
+                            Message = item.First().ErrorMessage
+                        }
+                    ).ToList()
             };
 
             await context.Response.WriteAsJsonAsync(validationFailureResponse);

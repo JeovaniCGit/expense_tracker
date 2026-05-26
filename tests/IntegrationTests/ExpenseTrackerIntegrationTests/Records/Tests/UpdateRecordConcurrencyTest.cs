@@ -8,6 +8,7 @@ using ExpenseTracker.IntegrationTests.Categories.Builder;
 using ExpenseTracker.IntegrationTests.Collections.Builder;
 using ExpenseTracker.IntegrationTests.Records.Builder;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpenseTracker.IntegrationTests.Records.Tests;
@@ -17,46 +18,35 @@ public class UpdateRecordConcurrencyTest : BaseIntegrationTest
     public UpdateRecordConcurrencyTest(IntegrationTestWebAppFactory factory) : base(factory)
     {
     }
-    
+
     [Fact]
-    public async Task UpdateRecordOnConcurrentRequest_ShouldFail()
+    public async Task UpdateRecordOnConcurrentWriteOperation_ShouldFail()
     {
-        // Arrange
-        var (userExternalId, recordExternalId, categoryExternalId) = await SeedRecordAndUserData();
+        var recordId= await SeedRecordData();
         
-        var updateDto = new TransactionRecordBuilder()
-            .BuildUpdateTransactionRecordRequestDto(categoryExternalId, recordExternalId);
+        using var firstScope = Factory.Services.CreateScope();
+        var firstDbContext = firstScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
-        //Simulate authentication by adding required headers (in a real scenario, we would obtain a JWT or cookie from the auth flow)
-        // Authentication is bypassed here to focus on downstream flow
-        Client.DefaultRequestHeaders.Add("X-UserId", userExternalId.ToString());
-        Client.DefaultRequestHeaders.Add("X-UserPerm", 
-            string.Join(",", new[] { PermissionNames.RecordWrite }));
+        using var secondScope = Factory.Services.CreateScope();
+        var secondDbContext = secondScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var recordOriginalRead = await firstDbContext.TransactionRecords.FindAsync(recordId);
+        var recordSecondRead = await secondDbContext.TransactionRecords.FindAsync(recordId);
+
+        recordOriginalRead.TransactionValue = 100;
+        await firstDbContext.SaveChangesAsync();
+
+        recordSecondRead.TransactionValue = 200;
         
-        // Act
-        var barrier = new Barrier(2);
+        await FluentActions.Awaiting(() => secondDbContext.SaveChangesAsync())
+            .Should()
+            .ThrowAsync<DbUpdateConcurrencyException>();
         
-        var firstTask = Task.Run(async () =>
-        {
-            return await SendRequest(updateDto, barrier);
-        });
-        
-        var secondTask = Task.Run(async () =>
-        {
-            return await SendRequest(updateDto, barrier);
-        });
-        
-        var updateResponses = await Task.WhenAll(firstTask, secondTask);
-        
-        // Assert
-        updateResponses.Count(r => r.StatusCode == HttpStatusCode.NoContent)
-            .Should().Be(1);
-        
-        updateResponses.Count(r => r.StatusCode == HttpStatusCode.Conflict)
-            .Should().Be(1);
+        var firstWriteResult = await firstDbContext.TransactionRecords.FindAsync(recordId);
+        firstWriteResult.TransactionValue.Should().Be(recordOriginalRead.TransactionValue);
     }
     
-    private async Task<(string, string, string)> SeedRecordAndUserData()
+    private async Task<long> SeedRecordData()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -78,7 +68,7 @@ public class UpdateRecordConcurrencyTest : BaseIntegrationTest
         await db.TransactionRecords.AddAsync(recordSeed);
         await db.SaveChangesAsync();
         
-        return (userSeed.ExternalId.ToString(), recordSeed.ExternalId.ToString(), categoryExternalId);
+        return recordSeed.Id;
     }
 
     private async Task<(long, long, string)> SeedCollectionAndCategoryData(long userId, ApplicationDbContext context)
@@ -98,16 +88,5 @@ public class UpdateRecordConcurrencyTest : BaseIntegrationTest
         await context.SaveChangesAsync();
         
         return (categorySeed.Id, collectionSeed.Id, categorySeed.ExternalId.ToString());
-    }
-    
-    private async Task<HttpResponseMessage> SendRequest(UpdateTransactionRecordRequestDto request, Barrier barrier)
-    {
-        barrier.SignalAndWait();
-        
-        return await Client.PutAsJsonAsync(
-            $"/api/v1/accounts/me/records/{request.TransactionExternalId}",
-            request,
-            CancellationToken.None
-        );
     }
 }
