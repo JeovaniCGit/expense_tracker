@@ -68,7 +68,7 @@ namespace ExpenseTracker.API
                 app.Lifetime.ApplicationStarted.Register(() =>
                 {
                     foreach (var url in app.Urls)
-                        Console.WriteLine($"Now listening on: {url}");
+                        Console.WriteLine($"Now listening on: {url}/swagger/index.html");
                 });
             }
             

@@ -21,8 +21,8 @@ using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.RateLimiting;
+using ExpenseTracker.Infrastructure.Authentication.JwtLib.Configuration;
 
 namespace ExpenseTracker.API;
 
@@ -32,7 +32,7 @@ public static class ApiSetupConfiguration
     {
         services.AddSingleton<AuthCookieFactory>();
         AddAuthorizationConfiguration(services, configuration);
-        AddAuthenticationConfiguration(services, configuration);
+        AddAuthenticationConfiguration(services);
         AddRateLimiting(services);
         AddCors(services, configuration, environment);
         AddRequestTimeout(services);
@@ -60,22 +60,29 @@ public static class ApiSetupConfiguration
         return services;
     }
 
-    public static IServiceCollection AddAuthenticationConfiguration(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddAuthenticationConfiguration(this IServiceCollection services)
     {
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(x =>
-        {
-            x.TokenValidationParameters = new TokenValidationParameters
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
             {
-                IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration["JWT_ACCESSTOKEN_SIGNINGKEY"]!)),
-                ValidateIssuerSigningKey = true,
-                ValidateLifetime = true,
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidIssuer = configuration["JWT_ISSUER"],
-                ValidAudience = configuration["JWT_AUDIENCE"],
-                ClockSkew = TimeSpan.FromSeconds(30)
-            };
-        });
+                var sp = services.BuildServiceProvider();
+                var jwt = sp.GetRequiredService<IOptions<JwtOptions>>().Value;
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Convert.FromBase64String(jwt.AccessTokenSigningKey)
+                    ),
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = jwt.Issuer,
+                    ValidAudience = jwt.Audience,
+                    ClockSkew = TimeSpan.FromSeconds(30)
+                };
+            });
+        
         return services;
     }
 
@@ -85,13 +92,17 @@ public static class ApiSetupConfiguration
         {
             return services;
         }
+        
+        var origins = configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>();
 
         services.AddCors(options =>
         {
             options.AddPolicy("Default", policy =>
-                policy.WithOrigins(configuration["CORS_ALLOWEDORIGINS"]!)
-                      .WithHeaders("Content-Type", "Authorization")
-                      .WithMethods("GET", "POST")
+                policy.WithOrigins(origins)
+                    .WithHeaders("Content-Type", "Authorization")
+                    .WithMethods("GET", "POST")
             );
         });
         return services;

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using DotNetEnv;
 using ExpenseTracker.API;
 using ExpenseTracker.Infrastructure.Database;
@@ -7,8 +8,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using SendGrid;
 using Testcontainers.PostgreSql;
@@ -29,8 +32,6 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
     // WireMock server URL for stubbing SendGrid API calls
     public IntegrationTestWebAppFactory()
     {
-        Env.Load("../../../.env.test"); // Load environment variables from .env.Test file
-        
         // This won't be used because Hangfire as been disabled during testing
         WireMockServer = WireMockServer.Start();
         WireMockUrl = WireMockServer.Urls[0];
@@ -88,6 +89,15 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
             services.RemoveAll<IBackgroundJobClient>();
             services.AddSingleton<IBackgroundJobClient>(_ => new Mock<IBackgroundJobClient>().Object);
+        });
+        
+        builder.ConfigureAppConfiguration((ctx, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string>
+            {
+                ["Jwt:AccessTokenSigningKey"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
+                ["Jwt:RefreshTokenSigningKey"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            }!);
         });
     }
 

@@ -84,7 +84,7 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(Environment.GetEnvironmentVariable("EXPENSETRACKER_CONNECTION_STRING")));
+            options.UseNpgsql(configuration.GetConnectionString("ExpenseTracker")));
 
         return services;
     }
@@ -93,26 +93,21 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.Configure<SendGridOptions>(options =>
         {
-            options.FromEmail = configuration.GetValue<string>("FROM_EMAIL")!;
-            options.FromName = configuration.GetValue<string>("FROM_NAME")!;
-            options.ApiKey = configuration.GetValue<string>("SEND_GRID_API_KEY")!;
-            options.VerificationTemplateId = configuration.GetValue<string>("SEND_GRID_VERIFICATION_TEMPLATE_ID")!;
-            options.ResetTemplateId = configuration.GetValue<string>("SEND_GRID_RESET_TEMPLATE_ID")!;
+            options.FromEmail = configuration.GetValue<string>("Email:FromEmail")!;
+            options.FromName = configuration.GetValue<string>("Email:FromName")!;
+            options.ApiKey = configuration.GetValue<string>("SendGrid:ApiKey")!;
+            options.VerificationTemplateId = configuration.GetValue<string>("SendGrid:VerificationTemplateId")!;
+            options.ResetTemplateId = configuration.GetValue<string>("SendGrid:ResetTemplateId")!;
         });
         return services;
     }
 
     public static IServiceCollection AddJwtSigningOptions(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<JwtOptions>(options =>
-        {
-            options.AccessTokenSigningKey = configuration.GetValue<string>("JWT_ACCESSTOKEN_SIGNINGKEY")!;
-            options.RefreshTokenSigningKey = configuration.GetValue<string>("JWT_REFRESHTOKEN_SIGNINGKEY")!;
-            options.AccessTokenExpiryMinutes = configuration.GetValue<int>("JWT_ACCESSTOKEN_EXPIRYMINUTES");
-            options.RefreshTokenExpiryDays = configuration.GetValue<int>("JWT_REFRESHTOKEN_EXPIRYDAYS");
-            options.Issuer = configuration.GetValue<string>("JWT_ISSUER")!;
-            options.Audience = configuration.GetValue<string>("JWT_AUDIENCE")!;
-        });
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection("Jwt"))
+            .ValidateOnStart();
+        
         return services;
     }
 
@@ -137,7 +132,7 @@ public static class InfrastructureServiceCollectionExtensions
             config.SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                   .UseSimpleAssemblyNameTypeSerializer()
                   .UseRecommendedSerializerSettings()
-                  .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(Environment.GetEnvironmentVariable("EXPENSETRACKER_CONNECTION_STRING"))));
+                  .UsePostgreSqlStorage(c => c.UseNpgsqlConnection(configuration.GetConnectionString("ExpenseTracker"))));
 
         return services;
     }

@@ -12,15 +12,15 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ExpenseTracker.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260304210439_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260526194122_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.11")
+                .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -35,6 +35,9 @@ namespace ExpenseTracker.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ExternalId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -109,6 +112,12 @@ namespace ExpenseTracker.Infrastructure.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -253,6 +262,9 @@ namespace ExpenseTracker.Infrastructure.Migrations
                     b.Property<long>("PermissionId")
                         .HasColumnType("bigint");
 
+                    b.Property<Guid>("ExternalId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("RoleId", "PermissionId");
 
                     b.HasIndex("PermissionId");
@@ -263,187 +275,224 @@ namespace ExpenseTracker.Infrastructure.Migrations
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 2L
+                            PermissionId = 2L,
+                            ExternalId = new Guid("c9a0fd83-7c68-3b05-b702-4f6a7b61d3ac")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 3L
+                            PermissionId = 3L,
+                            ExternalId = new Guid("d15761c8-0eb3-5d39-0d47-ab039a8e424a")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 4L
+                            PermissionId = 4L,
+                            ExternalId = new Guid("94c623aa-2a52-fe29-823e-ed27757994af")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 5L
+                            PermissionId = 5L,
+                            ExternalId = new Guid("a725ee2c-f14f-1f7f-34a7-8df0e7cb0227")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 6L
+                            PermissionId = 6L,
+                            ExternalId = new Guid("8c424643-5a9a-0726-b5ea-217c982fe1b9")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 7L
+                            PermissionId = 7L,
+                            ExternalId = new Guid("9a7ac054-05a3-69ad-799f-9bc6dbef753c")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 8L
+                            PermissionId = 8L,
+                            ExternalId = new Guid("2cbbf64c-fe68-ecce-2dd7-51d83718c1f1")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 9L
+                            PermissionId = 9L,
+                            ExternalId = new Guid("0af91c38-304f-b552-905b-2020455980d7")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 10L
+                            PermissionId = 10L,
+                            ExternalId = new Guid("1d871f8e-aad2-7050-1092-5e2d8c6a4117")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 11L
+                            PermissionId = 11L,
+                            ExternalId = new Guid("ee9c5384-af1b-2c41-8f19-2290d05a9077")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 12L
+                            PermissionId = 12L,
+                            ExternalId = new Guid("f95d305c-11ed-df10-384a-f70592d94a51")
                         },
                         new
                         {
                             RoleId = 1L,
-                            PermissionId = 13L
+                            PermissionId = 13L,
+                            ExternalId = new Guid("dfa90665-285c-28d2-504f-1d817deec235")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 1L
+                            PermissionId = 1L,
+                            ExternalId = new Guid("4033cabb-30dd-5d7a-9ce8-c2c54dfb8914")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 2L
+                            PermissionId = 2L,
+                            ExternalId = new Guid("5e233cc1-ee98-84e7-dd19-434b1d2cbac4")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 3L
+                            PermissionId = 3L,
+                            ExternalId = new Guid("23e6bb54-e6a2-d0ba-ca96-5c136d673408")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 4L
+                            PermissionId = 4L,
+                            ExternalId = new Guid("c4ad54e3-26ac-45d3-0e6b-9b80b96a3c0d")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 5L
+                            PermissionId = 5L,
+                            ExternalId = new Guid("98bab483-e1be-80d9-35ae-18e866b007de")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 6L
+                            PermissionId = 6L,
+                            ExternalId = new Guid("d0d1fc9e-45b4-3a10-16a8-e754c3d9ef57")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 7L
+                            PermissionId = 7L,
+                            ExternalId = new Guid("12e81ae9-9edb-83df-917c-90df8fe67272")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 8L
+                            PermissionId = 8L,
+                            ExternalId = new Guid("fe4bade1-7a77-97c1-94b8-fc63884b57a2")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 9L
+                            PermissionId = 9L,
+                            ExternalId = new Guid("40e36409-d2ea-c2fe-2ae3-d766f27dff8e")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 10L
+                            PermissionId = 10L,
+                            ExternalId = new Guid("882afe9a-73d9-176e-2574-7157129a8c1c")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 11L
+                            PermissionId = 11L,
+                            ExternalId = new Guid("b65dd8d5-097a-5e70-43af-bb6ac596537f")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 12L
+                            PermissionId = 12L,
+                            ExternalId = new Guid("9eff1f04-0617-9d7e-7e53-e6d5517fc691")
                         },
                         new
                         {
                             RoleId = 2L,
-                            PermissionId = 13L
+                            PermissionId = 13L,
+                            ExternalId = new Guid("a934a83a-be13-03fb-e508-cee05ab9ebe9")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 2L
+                            PermissionId = 2L,
+                            ExternalId = new Guid("366f9fdb-bb63-57fd-d1f5-6e1ff41d2f3f")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 3L
+                            PermissionId = 3L,
+                            ExternalId = new Guid("25be4811-3723-559b-5a8f-421a6ea8782d")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 4L
+                            PermissionId = 4L,
+                            ExternalId = new Guid("4e9a33c9-0396-b818-b464-487334a52367")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 5L
+                            PermissionId = 5L,
+                            ExternalId = new Guid("94b5897f-e947-f7c6-2e83-51deca4cd054")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 6L
+                            PermissionId = 6L,
+                            ExternalId = new Guid("3fd0f514-7802-cf0e-2d69-11c9d9269d24")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 7L
+                            PermissionId = 7L,
+                            ExternalId = new Guid("7f8eee39-2e96-0400-3ebf-10b2a6677f80")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 8L
+                            PermissionId = 8L,
+                            ExternalId = new Guid("6a350754-f9cf-ed1d-c4fc-26c721f75596")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 9L
+                            PermissionId = 9L,
+                            ExternalId = new Guid("3ebbcbd9-1683-a094-50dd-bf33e07814b3")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 10L
+                            PermissionId = 10L,
+                            ExternalId = new Guid("ad32adf2-4a2f-cee3-af77-0521d1ee1e70")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 11L
+                            PermissionId = 11L,
+                            ExternalId = new Guid("c66d048b-e67e-fccc-b8cf-a5e410dd2341")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 12L
+                            PermissionId = 12L,
+                            ExternalId = new Guid("883e184e-bd6a-6ace-0826-1b976f55b6c1")
                         },
                         new
                         {
                             RoleId = 3L,
-                            PermissionId = 13L
+                            PermissionId = 13L,
+                            ExternalId = new Guid("ff513122-1b1f-5c42-e8fe-b4e66acd88dd")
                         });
                 });
 
@@ -494,6 +543,12 @@ namespace ExpenseTracker.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset?>("UsedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -654,12 +709,19 @@ namespace ExpenseTracker.Infrastructure.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ExternalId")
                         .IsUnique();
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "CategoryName")
+                        .IsUnique();
 
                     b.ToTable("TransactionRecordCategories");
                 });
@@ -718,6 +780,12 @@ namespace ExpenseTracker.Infrastructure.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ExternalId")
@@ -725,7 +793,42 @@ namespace ExpenseTracker.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "StartDate");
 
+                    b.HasIndex("UserId", "StartDate", "EndDate", "Description")
+                        .IsUnique();
+
                     b.ToTable("Collections");
+                });
+
+            modelBuilder.Entity("ExpenseTracker.Domain.Email.Entity.EmailDelivery", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("ExternalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExternalId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("EmailDeliveries");
                 });
 
             modelBuilder.Entity("ExpenseTracker.Domain.Records.Entity.TransactionRecord", b =>
@@ -773,6 +876,12 @@ namespace ExpenseTracker.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ExternalId")
@@ -783,6 +892,9 @@ namespace ExpenseTracker.Infrastructure.Migrations
                     b.HasIndex("TransactionCollectionId");
 
                     b.HasIndex("TransactionUserId");
+
+                    b.HasIndex("TransactionValue", "TransactionUserId", "TransactionCategoryId")
+                        .IsUnique();
 
                     b.ToTable("TransactionRecords");
                 });
@@ -862,6 +974,17 @@ namespace ExpenseTracker.Infrastructure.Migrations
                 {
                     b.HasOne("ExpenseTracker.Domain.Accounts.Entity.User", "User")
                         .WithMany("Collections")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ExpenseTracker.Domain.Email.Entity.EmailDelivery", b =>
+                {
+                    b.HasOne("ExpenseTracker.Domain.Accounts.Entity.User", "User")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
