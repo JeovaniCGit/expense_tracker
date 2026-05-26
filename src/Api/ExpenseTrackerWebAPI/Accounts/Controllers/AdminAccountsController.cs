@@ -4,6 +4,7 @@ using ExpenseTracker.Application.Accounts.Contracts.Responses;
 using ExpenseTracker.Application.Accounts.Services.AdminServices;
 using ExpenseTracker.Application.Accounts.Services.UserServices;
 using ExpenseTracker.Application.Authorization.Perms.Attributes;
+using ExpenseTracker.Application.Validation.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
@@ -36,13 +37,13 @@ public class AdminAccountsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>A list of user accounts for the requested page.</returns>
     [HttpGet]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(IEnumerable<GetAllUsersResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.Admin)]
     [RequestTimeout("FastOperation")]
-    public async Task<ActionResult<GetAllUsersResponseDto>> GetAll([FromRoute] int page, [FromRoute] int pageSize, CancellationToken ctoken)
+    public async Task<ActionResult<IEnumerable<GetAllUsersResponseDto>>> GetAll([FromRoute] int page, [FromRoute] int pageSize, CancellationToken ctoken)
     {
         IEnumerable<GetAllUsersResponseDto> result = await _userService.GetAllUsers(page, pageSize, ctoken);
 
@@ -56,9 +57,9 @@ public class AdminAccountsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>User analytics information.</returns>
     [HttpGet("analytics")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(GetUserAnalyticsResponseDto), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.Admin)]
     [RequestTimeout("FastOperation")]

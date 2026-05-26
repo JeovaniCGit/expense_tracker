@@ -6,6 +6,7 @@ using ExpenseTracker.Application.Authorization.Perms.Attributes;
 using ExpenseTracker.Application.Records.Contracts.Requests;
 using ExpenseTracker.Application.Records.Contracts.Responses;
 using ExpenseTracker.Application.Records.Services;
+using ExpenseTracker.Application.Validation.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
@@ -35,11 +36,11 @@ public class RecordsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>The created transaction record.</returns>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(AddTransactionRecordResponseDto), 201)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 409)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordWrite)]
     [RequestTimeout("FastOperation")]
@@ -61,10 +62,10 @@ public class RecordsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>List of transaction records under the specified category.</returns>
     [HttpGet("by-category")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(IEnumerable<GetTransactionRecordResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordRead)]
     [RequestTimeout("FastOperation")]
@@ -86,10 +87,10 @@ public class RecordsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>List of transaction records under the specified collection.</returns>
     [HttpGet("by-collection")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(IEnumerable<GetTransactionRecordResponseDto>), 200)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordRead)]
     [RequestTimeout("FastOperation")]
@@ -111,11 +112,11 @@ public class RecordsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>No content if update succeeds.</returns>
     [HttpPut("{recordExternalId}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 204)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordWrite)]
     [RequestTimeout("FastOperation")]
@@ -137,11 +138,11 @@ public class RecordsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>No content if all updates succeed.</returns>
     [HttpPut]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 204)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordWrite)]
     [RequestTimeout("FastOperation")]
@@ -163,11 +164,11 @@ public class RecordsController : ControllerBase
     /// <param name="ctoken">Cancellation token.</param>
     /// <returns>No content if deletion succeeds.</returns>
     [HttpDelete("{recordExternalId}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 204)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+    [ProducesResponseType(typeof(ApiErrorResponse), 403)]
     [EnableRateLimiting(RateLimitingPolicy.AuthenticatedUsers)]
     [Authorize(Policy = PermissionNames.RecordDelete)]
     [RequestTimeout("FastOperation")]
