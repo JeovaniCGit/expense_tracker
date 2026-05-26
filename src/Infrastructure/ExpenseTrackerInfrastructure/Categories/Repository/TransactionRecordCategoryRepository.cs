@@ -37,20 +37,6 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
         return await _context.TransactionRecordCategories.Where(tc => tc.ExternalId == externalId).Select(tc => (long?)tc.Id).FirstOrDefaultAsync();
     }
 
-    public async Task<IEnumerable<TransactionRecordCategory>> GetAllTransactionsCategories(CancellationToken ctoken = default)
-    {
-        return await _context.TransactionRecordCategories.AsNoTracking()
-            .OrderBy(tc => tc.CategoryName)
-            .Select(tc => new TransactionRecordCategory
-            {
-                Id = tc.Id,
-                ExternalId = tc.ExternalId,
-                CategoryName = tc.CategoryName,
-                UserId = tc.UserId
-            })
-            .ToListAsync(ctoken);
-    }
-
     public async Task<TransactionRecordCategory?> GetTransactionsCategoryByExternalId(Guid externalId, CancellationToken ctoken = default)
     {
         return await _context.TransactionRecordCategories.FirstOrDefaultAsync(tc => tc.ExternalId == externalId, ctoken);
@@ -72,7 +58,8 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
                 Id = tc.Id,
                 ExternalId = tc.ExternalId,
                 CategoryName = tc.CategoryName,
-                UserId = tc.UserId
+                UserId = tc.UserId,
+                Version = tc.Version
             })
             .ToListAsync(ctoken);
     }

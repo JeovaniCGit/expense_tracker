@@ -59,12 +59,13 @@ public class TransactionRecordCategoryBuilder
         };
     }
     
-    public UpdateTransactionRecordCategoryRequestDto BuildUpdateTransactionRecordCategoryRequestDto(string categoryExternalId)
+    public UpdateTransactionRecordCategoryRequestDto BuildUpdateTransactionRecordCategoryRequestDto(string categoryExternalId, uint version)
     {
         return new UpdateTransactionRecordCategoryRequestDto
         {
             CategoryName = _categoryName,
-            CategoryExternalId = categoryExternalId
+            CategoryExternalId = categoryExternalId,
+            Version = version
         };
     }
 }

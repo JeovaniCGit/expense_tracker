@@ -8,18 +8,13 @@ namespace ExpenseTracker.Domain.Accounts.Entity;
 public class User : AuditEntity
 {
     public string Firstname { get; set; }
-
     public string Lastname { get; set; }
-
     public string Email { get; set; }
-
     public string Password { get; set; }
-
     public DateTimeOffset PasswordLastUpdated { get; set; } = DateTimeOffset.UtcNow;
-
     public bool IsEmailVerified { get; set; } = false;
-
     public long RoleId { get; set; }
+    public uint Version { get; set; }
 
     public UserRole Role { get; set; }
     public PasswordHistory PasswordHistory { get; set; }

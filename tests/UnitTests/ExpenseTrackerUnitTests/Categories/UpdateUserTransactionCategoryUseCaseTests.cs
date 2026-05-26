@@ -55,8 +55,8 @@ public class UpdateUserTransactionCategoryUseCaseTests
         UpdateTransactionRecordCategoryRequestDto request = new UpdateTransactionRecordCategoryRequestDto
         {
             CategoryExternalId = Guid.NewGuid().ToString(),
-            CategoryName = "Health"
-            
+            CategoryName = "Health",
+            Version = 123
         };
 
         _currentUserServiceMock.Setup(
@@ -112,8 +112,8 @@ public class UpdateUserTransactionCategoryUseCaseTests
         UpdateTransactionRecordCategoryRequestDto request = new UpdateTransactionRecordCategoryRequestDto
         {
             CategoryExternalId = Guid.NewGuid().ToString(),
-            CategoryName = "Health"
-
+            CategoryName = "Health",
+            Version = 123
         };
 
         TransactionRecordCategory existingCategory = new TransactionRecordCategory
@@ -177,8 +177,8 @@ public class UpdateUserTransactionCategoryUseCaseTests
         UpdateTransactionRecordCategoryRequestDto request = new UpdateTransactionRecordCategoryRequestDto
         {
             CategoryExternalId = Guid.NewGuid().ToString(),
-            CategoryName = "Health"
-
+            CategoryName = "Health",
+            Version = 123
         };
 
         TransactionRecordCategory existingCategory = new TransactionRecordCategory

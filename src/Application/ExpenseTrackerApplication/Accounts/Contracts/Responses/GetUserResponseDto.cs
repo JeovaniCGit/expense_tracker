@@ -8,6 +8,7 @@ public sealed record GetUserResponseDto
     public required string Firstname { get; init; }
     public required string Lastname { get; init; }
     public required string Email { get; init; }
+    public required uint Version { get; init; }
 
     public IEnumerable<GetTransactionRecordResponseDto> Transactions { get; init; } = Array.Empty<GetTransactionRecordResponseDto>();
 

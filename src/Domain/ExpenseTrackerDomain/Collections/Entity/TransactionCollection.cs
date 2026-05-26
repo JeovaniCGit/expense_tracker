@@ -11,6 +11,7 @@ public class TransactionCollection : AuditEntity
     public decimal RealBudget { get; set; } = 0.0m;
     public DateTimeOffset StartDate { get; set; }
     public DateTimeOffset EndDate { get; set; }
+    public uint Version { get; set; }
     public User User { get; set; }
     public ICollection<TransactionRecord> Records { get; set; } = new List<TransactionRecord>();
     public TransactionCollection() { }

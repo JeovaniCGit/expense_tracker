@@ -49,7 +49,8 @@ public class TransactionRecordRepository : ITransactionRecordRepository
             {
                 ExternalId = tr.ExternalId,
                 TransactionValue = tr.TransactionValue,
-                TransactionCategory = tr.TransactionCategory
+                TransactionCategory = tr.TransactionCategory,
+                Version = tr.Version
             })
             .ToListAsync(ctoken);
     }
@@ -70,7 +71,8 @@ public class TransactionRecordRepository : ITransactionRecordRepository
             {
                 ExternalId = tr.ExternalId,
                 TransactionValue = tr.TransactionValue,
-                TransactionCategory = tr.TransactionCategory
+                TransactionCategory = tr.TransactionCategory,
+                Version = tr.Version
             })
             .ToListAsync(ctoken);
     }

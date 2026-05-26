@@ -62,7 +62,8 @@ public sealed class CollectionService : ICollectionService
             {
                 ExternalId = newAddedCollection.ExternalId,
                 Description = newAddedCollection.Description,
-                CreatedAt = newAddedCollection.CreatedAt
+                CreatedAt = newAddedCollection.CreatedAt,
+                Version = newAddedCollection.Version
             };
         } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
@@ -102,7 +103,8 @@ public sealed class CollectionService : ICollectionService
             EstimatedBudget = c.EstimatedBudget,
             RealBudget = c.RealBudget,
             StartDate = c.StartDate,
-            EndDate = c.EndDate
+            EndDate = c.EndDate,
+            Version = c.Version
 
         }).ToList();
     }

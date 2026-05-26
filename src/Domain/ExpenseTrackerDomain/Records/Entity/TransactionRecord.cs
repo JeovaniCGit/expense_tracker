@@ -11,6 +11,7 @@ public class TransactionRecord : AuditEntity
     public long TransactionUserId { get;  set; }
     public long TransactionCategoryId { get;  set; }
     public long TransactionCollectionId { get; set; }
+    public uint Version { get; set; }
     public TransactionRecordCategory TransactionCategory { get;  set; }
     public TransactionCollection TransactionCollection { get;  set; }
     public User User { get;  set; }

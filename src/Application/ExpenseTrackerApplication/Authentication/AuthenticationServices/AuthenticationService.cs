@@ -100,28 +100,6 @@ public sealed class AuthenticationService : IAuthenticationService
         return true;
     }
 
-    //public string GenerateNewSecurePasswordForReset(CancellationToken ctoken = default)
-    //{
-    //    string Uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    //    string Lowercase = "abcdefghijklmnopqrstuvwxyz";
-    //    string Numbers = "0123456789";
-    //    string Special = "!@#$%^&*()-_=+[]{}|;:,.<>?";
-
-    //    string allChars = Uppercase + Lowercase + Numbers + Special;
-
-    //    Random rand = new Random();
-    //    int minimumLength = 16;
-    //    string newSecurePassword = "";
-
-    //    for (int i = 0; i < minimumLength; i++)
-    //    {
-    //        int index = rand.Next(allChars.Length);
-    //        newSecurePassword += allChars[index];
-    //    }
-
-    //    return newSecurePassword;
-    //}
-
     public async Task<ErrorOr<AddUserResponseDto>> Register(AddUserRequestDto request, CancellationToken ctoken = default)
     {
         await _addUserValidator.ValidateAndThrowAsync(request, ctoken);
@@ -161,7 +139,8 @@ public sealed class AuthenticationService : IAuthenticationService
             ExternalId = addedRecord.ExternalId,
             Firstname = addedRecord.Firstname,
             Lastname = addedRecord.Lastname,
-            CreatedAt = addedRecord.CreatedAt
+            CreatedAt = addedRecord.CreatedAt,
+            Version = addedRecord.Version
         };
     }
 

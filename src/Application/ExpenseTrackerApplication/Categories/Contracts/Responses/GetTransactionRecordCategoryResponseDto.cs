@@ -3,4 +3,5 @@ public sealed record GetTransactionRecordCategoryResponseDto
 {
     public required string CategoryName { get; init; }
     public required Guid CategoryExternalId { get; init; }
+    public required uint Version { get; init; }
 }

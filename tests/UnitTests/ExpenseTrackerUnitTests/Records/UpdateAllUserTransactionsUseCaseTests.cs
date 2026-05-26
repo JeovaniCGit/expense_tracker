@@ -74,19 +74,22 @@ public class UpdateAllUserTransactionsUseCaseTests
             {
                 TransactionExternalId = record1ExternalId.ToString(),
                 TransactionCategoryExternalId = existingCategoriesExternalId.ToString(),
-                TransactionValue = 10
+                TransactionValue = 10,
+                Version = 123
             },
             new UpdateTransactionRecordRequestDto
             {
                 TransactionExternalId = record2ExternalId.ToString(),
                 TransactionCategoryExternalId = existingCategoriesExternalId.ToString(),
-                TransactionValue = 100
+                TransactionValue = 100,
+                Version = 1234
             },
             new UpdateTransactionRecordRequestDto
             {
                 TransactionExternalId = record3ExternalId.ToString(),
                 TransactionCategoryExternalId = existingCategoriesExternalId.ToString(),
-                TransactionValue = 20
+                TransactionValue = 20,
+                Version = 12345
             }
         };
 
@@ -208,19 +211,22 @@ public class UpdateAllUserTransactionsUseCaseTests
             {
                 TransactionExternalId = record1ExternalId.ToString(),
                 TransactionCategoryExternalId = healthCategoryExternalId.ToString(),
-                TransactionValue = 10
+                TransactionValue = 10,
+                Version = 123
             },
             new UpdateTransactionRecordRequestDto
             {
                 TransactionExternalId = record2ExternalId.ToString(),
                 TransactionCategoryExternalId = educationCategoryExternalId.ToString(),
-                TransactionValue = 100
+                TransactionValue = 100,
+                Version = 1234
             },
             new UpdateTransactionRecordRequestDto
             {
                 TransactionExternalId = record3ExternalId.ToString(),
                 TransactionCategoryExternalId = Guid.NewGuid().ToString(),
-                TransactionValue = 20
+                TransactionValue = 20,
+                Version = 12345
             }
         };
 
@@ -375,19 +381,22 @@ public class UpdateAllUserTransactionsUseCaseTests
             {
                 TransactionExternalId = record1ExternalId.ToString(),
                 TransactionCategoryExternalId = healthCategoryExternalId.ToString(),
-                TransactionValue = 10
+                TransactionValue = 10,
+                Version = 123
             },
             new UpdateTransactionRecordRequestDto
             {
                 TransactionExternalId = record2ExternalId.ToString(),
                 TransactionCategoryExternalId = educationCategoryExternalId.ToString(),
-                TransactionValue = 100
+                TransactionValue = 100,
+                Version = 1234
             },
             new UpdateTransactionRecordRequestDto
             {
                 TransactionExternalId = record3ExternalId.ToString(),
                 TransactionCategoryExternalId = gymCategoryExternalId.ToString(),
-                TransactionValue = 20
+                TransactionValue = 20,
+                Version = 12345
             }
         };
 

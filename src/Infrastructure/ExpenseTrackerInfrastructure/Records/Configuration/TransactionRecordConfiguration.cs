@@ -46,7 +46,7 @@ internal sealed class TransactionRecordConfiguration : BaseEntityConfiguration<T
 
         builder.HasQueryFilter(tr => !tr.User.IsDeleted && !tr.IsDeleted);
 
-        builder.Property<uint>("xmin")
+        builder.Property(p => p.Version)
             .IsRowVersion();
     }
 }

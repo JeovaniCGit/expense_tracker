@@ -6,7 +6,6 @@ namespace ExpenseTracker.Application.Accounts.Services.UserServices;
 
 public interface IUserService
 {
-    Task<ErrorOr<AddUserResponseDto>> CreateUser(AddUserRequestDto request, CancellationToken ctoken = default);
     Task<ErrorOr<int>> UpdateUser(UpdateUserRequestDto request, CancellationToken ctoken = default);
     Task<ErrorOr<int>> DeleteUser(string externalId, CancellationToken ctoken = default);
     Task<ErrorOr<GetUserResponseDto>> GetUserByExternalId(CancellationToken ctoken = default);

@@ -84,6 +84,7 @@ internal sealed class UserRepository : IUserRepository
                 Lastname = u.Lastname,
                 Email = u.Email,
                 ExternalId = u.ExternalId,
+                Version = u.Version,
             }).ToListAsync(ctoken);
     }
 }

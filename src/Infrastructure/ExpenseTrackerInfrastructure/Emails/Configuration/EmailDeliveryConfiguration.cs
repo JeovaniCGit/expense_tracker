@@ -33,9 +33,6 @@ public sealed class EmailDeliveryConfiguration : BaseEntityConfiguration<EmailDe
             .WithMany()
             .HasForeignKey(fk => fk.UserId);
 
-        builder.Property<uint>("xmin")
-            .IsRowVersion();
-
         builder.HasQueryFilter(p => !p.User.IsDeleted);
     }
 }

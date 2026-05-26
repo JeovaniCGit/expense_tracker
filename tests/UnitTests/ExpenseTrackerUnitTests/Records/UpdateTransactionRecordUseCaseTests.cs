@@ -60,7 +60,8 @@ public class UpdateTransactionRecordUseCaseTests
         {
             TransactionCategoryExternalId = Guid.NewGuid().ToString(),
             TransactionExternalId = Guid.NewGuid().ToString(),
-            TransactionValue = 5
+            TransactionValue = 5,
+            Version = 123
         };
 
         User existingUser = new User
@@ -119,7 +120,8 @@ public class UpdateTransactionRecordUseCaseTests
         {
             TransactionCategoryExternalId = Guid.NewGuid().ToString(),
             TransactionExternalId = Guid.NewGuid().ToString(),
-            TransactionValue = 5
+            TransactionValue = 5,
+            Version = 123
         };
 
         User existingUser = new User
@@ -191,7 +193,8 @@ public class UpdateTransactionRecordUseCaseTests
         {
             TransactionCategoryExternalId = Guid.NewGuid().ToString(),
             TransactionExternalId = Guid.NewGuid().ToString(),
-            TransactionValue = 5
+            TransactionValue = 5,
+            Version = 123
         };
 
         User existingUser = new User

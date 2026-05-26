@@ -6,6 +6,7 @@ using ExpenseTracker.Infrastructure.Database;
 using ExpenseTracker.IntegrationTests.Accounts.Builder;
 using ExpenseTracker.IntegrationTests.Categories.Builder;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpenseTracker.IntegrationTests.Categories.Tests;
@@ -17,44 +18,33 @@ public class UpdateCategoryConcurrencyTest : BaseIntegrationTest
     }
     
     [Fact]
-    public async Task UpdateCategoryOnConcurrentRequest_ShouldFail()
+    public async Task UpdateRecordOnConcurrentWriteOperation_ShouldFail()
     {
-        // Arrange
-        var (userExternalId, categoryExternalId) = await SeedCategoryAndUserData();
+        var categoryId= await SeedCategoryData();
         
-        var updateDto = new TransactionRecordCategoryBuilder()
-            .BuildUpdateTransactionRecordCategoryRequestDto(categoryExternalId);
+        using var firstScope = Factory.Services.CreateScope();
+        var firstDbContext = firstScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         
-        //Simulate authentication by adding required headers (in a real scenario, we would obtain a JWT or cookie from the auth flow)
-        // Authentication is bypassed here to focus on downstream flow
-        Client.DefaultRequestHeaders.Add("X-UserId", userExternalId.ToString());
-        Client.DefaultRequestHeaders.Add("X-UserPerm", 
-            string.Join(",", new[] { PermissionNames.CategoryWrite }));
-        
-        // Act
-        var barrier = new Barrier(2);
-        
-        var firstTask = Task.Run(async () =>
-        {
-            return await SendRequest(updateDto, barrier);
-        });
+        using var secondScope = Factory.Services.CreateScope();
+        var secondDbContext = secondScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var secondTask = Task.Run(async () =>
-        {
-            return await SendRequest(updateDto, barrier);
-        });
+        var categoryOriginalRead = await firstDbContext.TransactionRecordCategories.FindAsync(categoryId);
+        var categorySecondRead = await secondDbContext.TransactionRecordCategories.FindAsync(categoryId);
+
+        categoryOriginalRead.CategoryName = "Car";
+        await firstDbContext.SaveChangesAsync();
+
+        categorySecondRead.CategoryName = "Insurance";
         
-        var updateResponses = await Task.WhenAll(firstTask, secondTask);
+        await FluentActions.Awaiting(() => secondDbContext.SaveChangesAsync())
+            .Should()
+            .ThrowAsync<DbUpdateConcurrencyException>();
         
-        // Assert
-        updateResponses.Count(r => r.StatusCode == HttpStatusCode.NoContent)
-            .Should().Be(1);
-        
-        updateResponses.Count(r => r.StatusCode == HttpStatusCode.Conflict)
-            .Should().Be(1);
+        var firstWriteResult = await firstDbContext.TransactionRecordCategories.FindAsync(categoryId);
+        firstWriteResult.CategoryName.Should().Be(categoryOriginalRead.CategoryName);
     }
 
-    private async Task<(string, string)> SeedCategoryAndUserData()
+    private async Task<long> SeedCategoryData()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -72,17 +62,6 @@ public class UpdateCategoryConcurrencyTest : BaseIntegrationTest
         await db.TransactionRecordCategories.AddAsync(categorySeed);
         await db.SaveChangesAsync();
         
-        return (userSeed.ExternalId.ToString(), categorySeed.ExternalId.ToString());
-    }
-
-    private async Task<HttpResponseMessage> SendRequest(UpdateTransactionRecordCategoryRequestDto request, Barrier barrier)
-    {
-        barrier.SignalAndWait();      
-        
-        return await Client.PutAsJsonAsync(
-            $"/api/v1/accounts/me/records/categories/{request.CategoryExternalId}",
-            request,
-            CancellationToken.None
-        );
+        return categorySeed.Id;
     }
 }

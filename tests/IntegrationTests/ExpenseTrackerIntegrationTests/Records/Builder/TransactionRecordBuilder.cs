@@ -106,13 +106,14 @@ public class TransactionRecordBuilder
         };
     }
     
-    public UpdateTransactionRecordRequestDto BuildUpdateTransactionRecordRequestDto(string categoryExternalId, string transactionExternalId)
+    public UpdateTransactionRecordRequestDto BuildUpdateTransactionRecordRequestDto(string categoryExternalId, string transactionExternalId, uint version)
     {
         return new UpdateTransactionRecordRequestDto
         {
             TransactionValue =  _transactionValue,
             TransactionExternalId = transactionExternalId,
-            TransactionCategoryExternalId = categoryExternalId
+            TransactionCategoryExternalId = categoryExternalId,
+            Version = version
         };
     }
 }

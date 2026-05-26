@@ -3,4 +3,5 @@ public sealed record UpdateTransactionRecordCategoryRequestDto
 {
     public required string CategoryExternalId { get; init; }
     public required string CategoryName { get; init; }
+    public required uint Version { get; init; }
 }

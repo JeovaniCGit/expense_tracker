@@ -54,7 +54,8 @@ public class UpdateCollectionUseCaseTests
             CollectionExternalId = Guid.NewGuid().ToString(),
             Description = "January",
             EstimatedBudget = 100,
-            RealBudget = 80
+            RealBudget = 80,
+            Version = 123
         };
 
         _currentUserServiceMock.Setup(
@@ -112,7 +113,8 @@ public class UpdateCollectionUseCaseTests
             CollectionExternalId = Guid.NewGuid().ToString(),
             Description = "January",
             EstimatedBudget = 100,
-            RealBudget = 80
+            RealBudget = 80,
+            Version = 123
         };
 
         var fixedStartTimestamp = new DateTimeOffset(2024, 3, 15, 10, 30, 0, TimeSpan.Zero);
@@ -185,7 +187,8 @@ public class UpdateCollectionUseCaseTests
             CollectionExternalId = Guid.NewGuid().ToString(),
             Description = "January",
             EstimatedBudget = 100,
-            RealBudget = 80
+            RealBudget = 80,
+            Version = 123
         };
 
         var fixedStartTimestamp = new DateTimeOffset(2024, 3, 15, 10, 30, 0, TimeSpan.Zero);

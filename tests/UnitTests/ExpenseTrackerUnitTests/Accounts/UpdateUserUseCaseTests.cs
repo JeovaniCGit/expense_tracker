@@ -55,6 +55,7 @@ public class UpdateUserUseCaseTests
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
+            Version = 123
         };
 
         User currentUser = new User
@@ -118,6 +119,7 @@ public class UpdateUserUseCaseTests
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
+            Version = 123
         };
 
         User currentUser = new User
@@ -214,7 +216,8 @@ public class UpdateUserUseCaseTests
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
-            Password = "Password123!"
+            Password = "Password123!",
+            Version = 123
         };
 
         _currentUserServiceMock.Setup(
@@ -304,7 +307,8 @@ public class UpdateUserUseCaseTests
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
-            Password = "Password123!"
+            Password = "Password123!",
+            Version = 123
         };
 
         User? capturedDataToUpdate = null;

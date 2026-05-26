@@ -59,17 +59,20 @@ public class UpdateAllUserCategoriesUseCaseTest
             new UpdateTransactionRecordCategoryRequestDto
             {
                 CategoryExternalId = category1ExternalId.ToString(),
-                CategoryName = category1Name
+                CategoryName = category1Name,
+                Version = 123
             },
             new UpdateTransactionRecordCategoryRequestDto
             {
                 CategoryExternalId = category2ExternalId.ToString(),
-                CategoryName = category2Name
+                CategoryName = category2Name,
+                Version = 1234
             },
             new UpdateTransactionRecordCategoryRequestDto
             {
                 CategoryExternalId = category3ExternalId.ToString(),
-                CategoryName = category3Name
+                CategoryName = category3Name,
+                Version = 12345
             }
         };
 
@@ -167,17 +170,20 @@ public class UpdateAllUserCategoriesUseCaseTest
             new UpdateTransactionRecordCategoryRequestDto
             {
                 CategoryExternalId = category1ExternalId.ToString(),
-                CategoryName = category1Name
+                CategoryName = category1Name,
+                Version = 123
             },
             new UpdateTransactionRecordCategoryRequestDto
             {
                 CategoryExternalId = category2ExternalId.ToString(),
-                CategoryName = category2Name
+                CategoryName = category2Name,
+                Version = 1234
             },
             new UpdateTransactionRecordCategoryRequestDto
             {
                 CategoryExternalId = category3ExternalId.ToString(),
-                CategoryName = category3Name
+                CategoryName = category3Name,
+                Version = 12345
             }
         };
 
