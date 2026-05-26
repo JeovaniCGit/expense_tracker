@@ -1,4 +1,5 @@
 ﻿using ErrorOr;
+using ExpenseTracker.Application.Validation.Contracts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExpenseTracker.API.Extensions;
@@ -17,9 +18,23 @@ public static class ErrorMapping
             _ => StatusCodes.Status500InternalServerError
         };
 
-        return new ObjectResult(errors)
+        // return new ObjectResult(errors)
+        // {
+        //     StatusCode = statusCode,
+        // };
+        
+        var response = new ApiErrorResponse
         {
-            StatusCode = statusCode,
+            Errors = errors.Select(e => new ApiError
+            {
+                Code = statusCode,
+                Message = e.Description
+            }).ToList()
+        };
+
+        return new ObjectResult(response)
+        {
+            StatusCode = statusCode
         };
     }
 }
