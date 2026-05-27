@@ -2,7 +2,9 @@ using DotNetEnv;
 using ExpenseTracker.API.Swagger;
 using ExpenseTracker.Application;
 using ExpenseTracker.Infrastructure;
+using ExpenseTracker.Infrastructure.Database;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace ExpenseTracker.API
@@ -31,6 +33,12 @@ namespace ExpenseTracker.API
             builder.Services.AddApiSetup(builder.Configuration, builder.Environment);
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                context.Database.Migrate();
+            }
 
             if (app.Environment.IsDevelopment())
             {

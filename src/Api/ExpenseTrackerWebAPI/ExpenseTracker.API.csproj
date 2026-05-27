@@ -4,9 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>ExpenseTracker.Dev.Secrets</UserSecretsId>
 	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <RootNamespace>ExpenseTracker.API</RootNamespace>
+    <UserSecretsId>dcd67b7c-0ab0-4cab-bf9e-2e1730d63394</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
