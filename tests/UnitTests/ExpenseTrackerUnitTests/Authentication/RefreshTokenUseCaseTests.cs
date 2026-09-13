@@ -22,6 +22,7 @@ using FluentValidation;
 using Hangfire;
 using Moq;
 using System.Security.Claims;
+using Microsoft.Extensions.Logging;
 
 namespace ExpenseTracker.UnitTests.Authentication;
 
@@ -41,6 +42,7 @@ public class RefreshTokenUseCaseTests
     private readonly Mock<IValidator<AddUserRequestDto>> _addUserValidatorMock;
     private readonly Mock<IValidator<LoginRequestDto>> _loginValidatorMock;
     private readonly Mock<IValidator<ResetPassRequestDto>> _resetPasswordValidatorMock;
+    private readonly Mock<ILogger<AuthenticationService>> _loggerMock;
     private readonly AuthenticationService _sut;
 
     public RefreshTokenUseCaseTests()
@@ -59,6 +61,7 @@ public class RefreshTokenUseCaseTests
         _addUserValidatorMock = new Mock<IValidator<AddUserRequestDto>>();
         _loginValidatorMock = new Mock<IValidator<LoginRequestDto>>();
         _resetPasswordValidatorMock = new Mock<IValidator<ResetPassRequestDto>>();
+        _loggerMock = new Mock<ILogger<AuthenticationService>>();
         _sut = new AuthenticationService(
             _userRepositoryMock.Object,
             _tokenRepositoryMock.Object,
@@ -73,7 +76,8 @@ public class RefreshTokenUseCaseTests
             _tokenObserverMock.Object,
             _addUserValidatorMock.Object,
             _loginValidatorMock.Object,
-            _resetPasswordValidatorMock.Object
+            _resetPasswordValidatorMock.Object,
+            _loggerMock.Object
         );
     }
 
@@ -196,6 +200,12 @@ public class RefreshTokenUseCaseTests
                 It.IsAny<string>(), 
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(fakeToken);
+        
+        _tokenServiceMock.Setup(
+                repo => repo.RevokeAllUserTokens(
+                    existingUser.Id, 
+                    It.IsAny<CancellationToken>()))
+        .ReturnsAsync(true);
 
         // Act
         var result = await _sut.RefreshToken(request, CancellationToken.None);
@@ -219,6 +229,13 @@ public class RefreshTokenUseCaseTests
         _tokenRepositoryMock.Verify(
             repo => repo.GetTokenByTokenValue(
                 request.RefreshToken, 
+                It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+        
+        _tokenServiceMock.Verify(
+            repo => repo.RevokeAllUserTokens(
+                existingUser.Id, 
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
@@ -315,6 +332,12 @@ public class RefreshTokenUseCaseTests
             {
                 IsUsed = true
             });
+        
+        _tokenServiceMock.Setup(
+                repo => repo.RevokeAllUserTokens(
+                    existingUser.Id, 
+                    It.IsAny<CancellationToken>()))
+        .ReturnsAsync(true);
 
         // Act
         var result = await _sut.RefreshToken(request, CancellationToken.None);
@@ -338,6 +361,13 @@ public class RefreshTokenUseCaseTests
         _tokenRepositoryMock.Verify(
             repo => repo.GetTokenByTokenValue(
                 request.RefreshToken, 
+                It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+        
+        _tokenServiceMock.Verify(
+            repo => repo.RevokeAllUserTokens(
+                existingUser.Id, 
                 It.IsAny<CancellationToken>()),
             Times.Once
         );

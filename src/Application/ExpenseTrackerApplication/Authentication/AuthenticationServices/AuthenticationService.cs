@@ -21,6 +21,7 @@ using ExpenseTracker.Domain.Email.Repository;
 using FluentValidation;
 using Hangfire;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.Extensions.Logging;
 
 
 namespace ExpenseTracker.Application.Authentication.AuthenticationServices;
@@ -41,6 +42,7 @@ public sealed class AuthenticationService : IAuthenticationService
     private readonly IValidator<AddUserRequestDto> _addUserValidator;
     private readonly IValidator<LoginRequestDto> _loginValidator;
     private readonly IValidator<ResetPassRequestDto> _resetPasswordValidator;
+    private readonly ILogger<AuthenticationService> _logger;
 
     public AuthenticationService(
         IUserRepository userRepository,
@@ -56,7 +58,8 @@ public sealed class AuthenticationService : IAuthenticationService
         IVerificationTokenObserver tokenObserver,
         IValidator<AddUserRequestDto> addUserValidator,
         IValidator<LoginRequestDto> loginValidator,
-        IValidator<ResetPassRequestDto> resetPasswordValidator
+        IValidator<ResetPassRequestDto> resetPasswordValidator,
+        ILogger<AuthenticationService> logger
         )
     {
         _userRepository = userRepository;
@@ -73,6 +76,7 @@ public sealed class AuthenticationService : IAuthenticationService
         _addUserValidator = addUserValidator;
         _loginValidator = loginValidator;
         _resetPasswordValidator = resetPasswordValidator;
+        _logger = logger;
     }
 
     public async Task<ErrorOr<bool>> ForgotPassword(string userEmail, CancellationToken ctoken = default)
@@ -198,11 +202,19 @@ public sealed class AuthenticationService : IAuthenticationService
 
         Token? existingToken = await _tokenRepository.GetTokenByTokenValue(request.RefreshToken, ctoken);
 
-        if (existingToken is null || !Equals(request.RefreshToken ?? "falseToken", existingToken.TokenValue))
+        if (existingToken is null || !Equals(request.RefreshToken, existingToken.TokenValue) || existingToken.IsUsed)
+        {
+            await _tokenService.RevokeAllUserTokens(existingUser.Id, ctoken);
+            using (_logger.BeginScope(new Dictionary<string, object>
+                   {
+                       ["UserId"] = existingUser.Id,
+                       ["Token"] = request.RefreshToken
+                   }))
+            {
+                _logger.LogCritical("Password Reset failed for userId: {UserId}. The token was already used. Token: {Token}", existingUser.Id, request.RefreshToken);
+            }
             return AuthenticationErrors.InvalidArgs;
-
-        if (existingToken.IsUsed)
-            return AuthenticationErrors.InvalidArgs;
+        }
 
         existingToken.IsUsed = true;
         existingToken.UsedAt = _dateProvider.Now;
@@ -226,7 +238,6 @@ public sealed class AuthenticationService : IAuthenticationService
     public async Task<ErrorOr<bool>> ResetPassword(string emailToken, ResetPassRequestDto request, CancellationToken ctoken = default)
     {
         await _resetPasswordValidator.ValidateAndThrowAsync(request, ctoken);
-
         if (string.IsNullOrEmpty(emailToken))
             return AuthenticationErrors.InvalidArgs;
 
@@ -238,13 +249,17 @@ public sealed class AuthenticationService : IAuthenticationService
         if (existingToken.IsUsed)
             return AuthenticationErrors.Forbidden;
 
-        string requestHashedPass = _passwordHasher.Hash(request.Password);
-
         User? existingUser = await _userRepository.GetUserById(existingToken.TokenUserId, ctoken);
-        PasswordHistory? passwordHistory = await _passwordHistoryRepository.GetByPasswordHash(requestHashedPass, ctoken);
-
-        if (passwordHistory is not null)
-            return AuthenticationErrors.InvalidPassword;
+        if (existingUser is null)
+            return AuthenticationErrors.InvalidArgs;
+        
+        string requestHashedPass = _passwordHasher.Hash(request.Password);
+        IEnumerable<PasswordHistory> userPasswordHistory = await _passwordHistoryRepository.GetHistoryOfPasswordHashes(existingUser!.Id, ctoken);
+        foreach (PasswordHistory ph in userPasswordHistory)
+        {
+            if (_passwordHasher.Verify(request.Password, ph.PasswordHash))
+                return AuthenticationErrors.InvalidPassword;
+        }
 
         PasswordHistory newPasswordHistory = new PasswordHistory
         {
