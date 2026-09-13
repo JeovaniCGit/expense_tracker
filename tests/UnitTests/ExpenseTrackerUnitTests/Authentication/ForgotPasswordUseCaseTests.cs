@@ -17,6 +17,7 @@ using ExpenseTracker.Domain.Email.Repository;
 using FluentAssertions;
 using FluentValidation;
 using Hangfire;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace ExpenseTracker.UnitTests.Authentication;
@@ -37,6 +38,7 @@ public class ForgotPasswordUseCaseTests
     private readonly Mock<IValidator<AddUserRequestDto>> _addUserValidatorMock;
     private readonly Mock<IValidator<LoginRequestDto>> _loginValidatorMock;
     private readonly Mock<IValidator<ResetPassRequestDto>> _resetPasswordValidatorMock;
+    private readonly Mock<ILogger<AuthenticationService>> _loggerMock;
     private readonly AuthenticationService _sut;
 
     public ForgotPasswordUseCaseTests()
@@ -55,6 +57,7 @@ public class ForgotPasswordUseCaseTests
         _addUserValidatorMock = new Mock<IValidator<AddUserRequestDto>>();
         _loginValidatorMock = new Mock<IValidator<LoginRequestDto>>();
         _resetPasswordValidatorMock = new Mock<IValidator<ResetPassRequestDto>>();
+        _loggerMock = new Mock<ILogger<AuthenticationService>>();
         _sut = new AuthenticationService(
             _userRepositoryMock.Object,
             _tokenRepositoryMock.Object,
@@ -69,7 +72,8 @@ public class ForgotPasswordUseCaseTests
             _tokenObserverMock.Object,
             _addUserValidatorMock.Object,
             _loginValidatorMock.Object,
-            _resetPasswordValidatorMock.Object
+            _resetPasswordValidatorMock.Object,
+            _loggerMock.Object
         );
     }
 

@@ -45,4 +45,10 @@ public class TokenRepository : ITokenRepository
         await _context.SaveChangesAsync(ctoken);
         return true;
     }
+
+    public async Task<IEnumerable<Token>> GetAllUserTokens(long userId, CancellationToken ctoken = default)
+    {
+        return await _context.Tokens.Where(t => t.TokenUserId == userId)
+            .ToListAsync(ctoken);
+    }
 }

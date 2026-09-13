@@ -8,4 +8,5 @@ public interface ITokenRepository
     Task<Token?> GetTokenByTokenValue(string tokenValue, CancellationToken ctoken = default);
     Task<bool> DeleteExpiredTokens();
     Task<bool> ApplyBehaviorChanges(CancellationToken ctoken = default);
+    Task<IEnumerable<Token>>GetAllUserTokens(long userId, CancellationToken ctoken = default);
 }

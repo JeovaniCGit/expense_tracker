@@ -26,4 +26,11 @@ public sealed class PasswordHistoryRepository : IPasswordHistoryRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(ph => ph.PasswordHash == passwordHash, ctoken);
     }
+
+    public async Task<IEnumerable<PasswordHistory>> GetHistoryOfPasswordHashes(long userId, CancellationToken ctoken = default)
+    {
+        return await _context.PasswordHistory.AsNoTracking()
+            .Where(ph => ph.UserId == userId)
+            .ToListAsync(ctoken);
+    }
 }

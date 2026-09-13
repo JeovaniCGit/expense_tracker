@@ -15,6 +15,7 @@ using ExpenseTracker.Domain.Email.Repository;
 using FluentAssertions;
 using FluentValidation;
 using Hangfire;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace ExpenseTracker.UnitTests.Authentication;
@@ -35,6 +36,7 @@ public class ResetPasswordUseCaseTests
     private readonly Mock<IValidator<AddUserRequestDto>> _addUserValidatorMock;
     private readonly Mock<IValidator<LoginRequestDto>> _loginValidatorMock;
     private readonly Mock<IValidator<ResetPassRequestDto>> _resetPasswordValidatorMock;
+    private readonly Mock<ILogger<AuthenticationService>> _loggerMock;
     private readonly AuthenticationService _sut;
 
     public ResetPasswordUseCaseTests()
@@ -53,6 +55,7 @@ public class ResetPasswordUseCaseTests
         _addUserValidatorMock = new Mock<IValidator<AddUserRequestDto>>();
         _loginValidatorMock = new Mock<IValidator<LoginRequestDto>>();
         _resetPasswordValidatorMock = new Mock<IValidator<ResetPassRequestDto>>();
+        _loggerMock = new Mock<ILogger<AuthenticationService>>();
         _sut = new AuthenticationService(
             _userRepositoryMock.Object,
             _tokenRepositoryMock.Object,
@@ -67,7 +70,8 @@ public class ResetPasswordUseCaseTests
             _tokenObserverMock.Object,
             _addUserValidatorMock.Object,
             _loginValidatorMock.Object,
-            _resetPasswordValidatorMock.Object
+            _resetPasswordValidatorMock.Object,
+            _loggerMock.Object
         );
     }
 
@@ -190,9 +194,25 @@ public class ResetPasswordUseCaseTests
             RoleId = (long)UserRoleEnum.RegularUser,
             ExternalId = Guid.NewGuid()
         };
-        existingUser.PasswordHistory = new PasswordHistory
+
+        var userOldPasswordHistories = new List<PasswordHistory>
         {
-            PasswordHash = "hashedPassword"
+            new PasswordHistory
+            {
+                PasswordHash = "hashedPassword",
+            },
+            new PasswordHistory
+            {
+                PasswordHash = "hashedPassword123",
+            },
+            new PasswordHistory
+            {
+                PasswordHash = "hashedPassword1234",
+            },
+            new PasswordHistory
+            {
+                PasswordHash = "hashedPassword12345",
+            },
         };
 
         _tokenRepositoryMock.Setup(
@@ -201,20 +221,26 @@ public class ResetPasswordUseCaseTests
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingToken);
 
-        _passwordHasherMock.Setup(hasher => hasher.Hash(
-            It.IsAny<string>()))
-            .Returns(hashedPassword);
-
         _userRepositoryMock.Setup(repo => repo.GetUserById(
             It.IsAny<long>(),
             It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingUser);
 
+        _passwordHasherMock.Setup(hasher => hasher.Hash(
+                It.IsAny<string>()))
+        .Returns(hashedPassword);
+        
         _passwordHistoryRepositoryMock.Setup(
-            repo => repo.GetByPasswordHash(
-                It.IsAny<string>(),
+            repo => repo.GetHistoryOfPasswordHashes(
+                existingUser.Id,
                 It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingUser.PasswordHistory);
+        .ReturnsAsync(userOldPasswordHistories);
+        
+        
+        _passwordHasherMock.Setup(hasher => hasher.Verify(
+                It.IsAny<string>(),
+                It.IsAny<string>()))
+        .Returns(true);
 
         // Act
         var result = await _sut.ResetPassword(requestToken, request, CancellationToken.None);
@@ -238,10 +264,10 @@ public class ResetPasswordUseCaseTests
         );
 
         _passwordHistoryRepositoryMock.Verify(
-            repo => repo.GetByPasswordHash(
-                hashedPassword,
+            repo => repo.GetHistoryOfPasswordHashes(
+                existingUser.Id,
                 It.IsAny<CancellationToken>()),
-            Times.Once
+            Times.AtLeastOnce
         );
     }
 
@@ -282,6 +308,28 @@ public class ResetPasswordUseCaseTests
             PasswordHash = hashedPassword,
             CreatedAt = fixedCreatedAtTimestamp
         };
+        
+        var userOldPasswordHistories = new List<PasswordHistory>
+        {
+            new PasswordHistory
+            {
+                UserId = existingUser.Id,
+                PasswordHash = hashedPassword,
+                CreatedAt = fixedCreatedAtTimestamp
+            },
+            new PasswordHistory
+            {
+                PasswordHash = "hashedPassword123",
+            },
+            new PasswordHistory
+            {
+                PasswordHash = "hashedPassword1234",
+            },
+            new PasswordHistory
+            {
+                PasswordHash = "hashedPassword12345",
+            },
+        };
 
         PasswordHistory? capturedHistory = null;
 
@@ -291,20 +339,26 @@ public class ResetPasswordUseCaseTests
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingToken);
 
-        _passwordHasherMock.Setup(
-            hasher => hasher.Hash(It.IsAny<string>()))
-        .Returns(hashedPassword);
-
         _userRepositoryMock.Setup(repo => repo.GetUserById(
             It.IsAny<long>(),
             It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingUser);
+        
+        _passwordHasherMock.Setup(
+                hasher => hasher.Hash(It.IsAny<string>()))
+        .Returns(hashedPassword);
 
         _passwordHistoryRepositoryMock.Setup(
-            repo => repo.GetByPasswordHash(
+                repo => repo.GetHistoryOfPasswordHashes(
+                    existingUser.Id,
+                    It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userOldPasswordHistories);
+        
+        
+        _passwordHasherMock.Setup(hasher => hasher.Verify(
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync((PasswordHistory?)null);
+                It.IsAny<string>()))
+        .Returns(false);
 
         _passwordHistoryRepositoryMock.Setup(
             repo => repo.Add(
@@ -348,10 +402,10 @@ public class ResetPasswordUseCaseTests
         );
 
         _passwordHistoryRepositoryMock.Verify(
-            repo => repo.GetByPasswordHash(
-                hashedPassword,
+            repo => repo.GetHistoryOfPasswordHashes(
+                existingUser.Id,
                 It.IsAny<CancellationToken>()),
-            Times.Once
+            Times.AtLeastOnce
         );
 
         _passwordHistoryRepositoryMock.Verify(

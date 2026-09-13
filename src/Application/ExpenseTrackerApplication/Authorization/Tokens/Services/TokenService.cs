@@ -41,8 +41,24 @@ public sealed class TokenService : ITokenService
         return await _tokenRepository.GetTokenByTokenValue(value, ctoken);
     }
 
+    public async Task<bool> RevokeAllUserTokens(long userId, CancellationToken ctoken = default)
+    {
+        IEnumerable<Token> userTokens = await GetAllUserTokens(userId, ctoken);
+        foreach (Token token in userTokens)
+        {
+            token.IsUsed = true;
+        }
+        
+        return await _tokenRepository.ApplyBehaviorChanges(ctoken);
+    }
+
     public async Task<bool> ApplyBehaviorChanges(CancellationToken ctoken = default)
     {
         return await _tokenRepository.ApplyBehaviorChanges(ctoken);
+    }
+    
+    public async Task<IEnumerable<Token>> GetAllUserTokens(long userId, CancellationToken ctoken = default)
+    {
+        return await _tokenRepository.GetAllUserTokens(userId, ctoken);
     }
 }
