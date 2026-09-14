@@ -13,6 +13,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Npgsql;
+using Respawn;
 using SendGrid;
 using Testcontainers.PostgreSql;
 using WireMock.Server;
@@ -28,7 +30,9 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
         .WithCleanUp(true)
         .WithAutoRemove(true)
         .Build();
-
+    
+    private Respawner _respawner;
+    
     // WireMock server URL for stubbing SendGrid API calls
     public IntegrationTestWebAppFactory()
     {
@@ -109,6 +113,30 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         dbContext.Database.Migrate();
+        
+        await using var connection = new NpgsqlConnection(_postgreSqlContainer.GetConnectionString());
+        await connection.OpenAsync();
+
+        _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
+        {
+            SchemasToInclude = new[] { "public" },
+            TablesToIgnore = new Respawn.Graph.Table[]
+            {
+                "__EFMigrationsHistory",
+                "UserRoles",
+                "Permissions",
+                "RolePermission",
+                "TokenTypes"
+            },
+            DbAdapter = DbAdapter.Postgres
+        });
+    }
+    
+    public async Task ResetDatabaseAsync()
+    {
+        await using var connection = new NpgsqlConnection(_postgreSqlContainer.GetConnectionString());
+        await connection.OpenAsync();
+        await _respawner.ResetAsync(connection);
     }
 
     public async Task DisposeAsync() {

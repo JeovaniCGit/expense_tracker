@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 
-public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>
+[Collection("Integration tests")]
+public abstract class BaseIntegrationTest : IAsyncLifetime 
 {
     protected readonly HttpClient Client;
     protected readonly IntegrationTestWebAppFactory Factory;
@@ -17,6 +18,14 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
             HandleCookies = true // Enable cookie handling for authentication tests
         });
     }
+    
+    public async Task InitializeAsync()
+    {
+        await Factory.ResetDatabaseAsync();
+        Factory.WireMockServer.ResetMappings();
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     // These 2 methods won't be implemented because Hangfire as been disabled during testing
     protected void StubSendGridSuccess()
