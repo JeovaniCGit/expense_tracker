@@ -12,12 +12,6 @@ public sealed class AddCollectionDtoValidator : AbstractValidator<AddCollectionR
             .NotEmpty()
             .WithMessage("Collection must have a description.");
 
-        RuleFor(c => c.UserExternalId)
-            .NotNull()
-            .NotEmpty()
-            .Must(c => Guid.TryParse(c, out _))
-            .WithMessage("Invalid args.");
-
         RuleFor(c => c.EstimatedBudget)
             .GreaterThan(0)
             .WithMessage("Estimated budget must be bigger than 0.");

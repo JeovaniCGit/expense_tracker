@@ -5,7 +5,6 @@ using ExpenseTracker.Application.Records.Errors;
 using ExpenseTracker.Application.Records.Services;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
-using ExpenseTracker.Domain.Authorization.UserRoles.Entity;
 using ExpenseTracker.Domain.Categories.Repository;
 using ExpenseTracker.Domain.Collection.Repository;
 using ExpenseTracker.Domain.Records.Entity;
@@ -65,8 +64,6 @@ public class DeleteTransactionRecordUseCaseTests
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
-            Password = "hashedpassword",
-            RoleId = (long)UserRoleEnum.RegularUser,
             ExternalId = Guid.NewGuid()
         };
 
@@ -81,8 +78,9 @@ public class DeleteTransactionRecordUseCaseTests
         .ReturnsAsync(existingUser);
 
         _transactionRecordRepositoryMock.Setup(
-            repo => repo.GetTransactionRecordByExternalId(
+            repo => repo.GetTransactionRecordByExternalIdForUser(
                 It.IsAny<Guid>(), 
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync((TransactionRecord?)null);
 
@@ -101,81 +99,15 @@ public class DeleteTransactionRecordUseCaseTests
         );
 
         _transactionRecordRepositoryMock.Verify(
-           repo => repo.GetTransactionRecordByExternalId(
+           repo => repo.GetTransactionRecordByExternalIdForUser(
                requestTargetExternalId, 
+               existingUser.Id,
                It.IsAny<CancellationToken>()),
            Times.Once
        );
     }
 
-    [Fact]
-    public async Task DeleteTransactionRecord_WhenRequestUserIsNotOwner_ShouldReturnNotOwnerError()
-    {
-        // Arrange
-        Guid currentUserExternalId = Guid.NewGuid();
-        Guid requestTargetExternalId = Guid.NewGuid();
-
-        User existingUser = new User
-        {
-            Id = 1,
-            Firstname = "John",
-            Lastname = "Doe",
-            Email = "john@doe.com",
-            Password = "hashedpassword",
-            RoleId = (long)UserRoleEnum.RegularUser,
-            ExternalId = Guid.NewGuid()
-        };
-        existingUser.Role = new UserRole
-        {
-            Id = (long)UserRoleEnum.RegularUser,
-            UserRoleName = UserRoleEnum.RegularUser.ToString()
-        };
-
-        TransactionRecord existingRecord = new TransactionRecord
-        {
-            TransactionValue = 5,
-            ExternalId = Guid.NewGuid(),
-            TransactionUserId = 2
-        };
-
-        _currentUserServiceMock.Setup(
-            service => service.UserExternalId)
-        .Returns(currentUserExternalId);
-
-        _userRepositoryMock.Setup(
-            repo => repo.GetUserByExternalId(
-                It.IsAny<Guid>(), 
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingUser);
-
-        _transactionRecordRepositoryMock.Setup(
-            repo => repo.GetTransactionRecordByExternalId(
-                It.IsAny<Guid>(), 
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingRecord);
-
-        // Act
-        var result = await _sut.DeleteTransactionRecord(requestTargetExternalId.ToString(), CancellationToken.None);
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(TransactionRecordErrors.NotOwner);
-
-        _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(
-                currentUserExternalId, 
-                It.IsAny<CancellationToken>()),
-            Times.Once()
-        );
-
-        _transactionRecordRepositoryMock.Verify(
-            repo => repo.GetTransactionRecordByExternalId(
-                requestTargetExternalId, 
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
+   
     [Fact]
     public async Task DeleteTransactionRecord_WhenRequestIsValid_ShouldReturnAffectedRows()
     {
@@ -189,14 +121,7 @@ public class DeleteTransactionRecordUseCaseTests
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
-            Password = "hashedpassword",
-            RoleId = (long)UserRoleEnum.RegularUser,
             ExternalId = Guid.NewGuid()
-        };
-        existingUser.Role = new UserRole
-        {
-            Id = (long)UserRoleEnum.RegularUser,
-            UserRoleName = UserRoleEnum.RegularUser.ToString()
         };
 
         TransactionRecord existingRecord = new TransactionRecord
@@ -219,8 +144,9 @@ public class DeleteTransactionRecordUseCaseTests
         .ReturnsAsync(existingUser);
 
         _transactionRecordRepositoryMock.Setup(
-            repo => repo.GetTransactionRecordByExternalId(
+            repo => repo.GetTransactionRecordByExternalIdForUser(
                 It.IsAny<Guid>(), 
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingRecord);
 
@@ -248,8 +174,9 @@ public class DeleteTransactionRecordUseCaseTests
         );
 
         _transactionRecordRepositoryMock.Verify(
-            repo => repo.GetTransactionRecordByExternalId(
+            repo => repo.GetTransactionRecordByExternalIdForUser(
                 requestTargetExternalId, 
+                existingUser.Id,
                 It.IsAny<CancellationToken>()),
             Times.Once
         );

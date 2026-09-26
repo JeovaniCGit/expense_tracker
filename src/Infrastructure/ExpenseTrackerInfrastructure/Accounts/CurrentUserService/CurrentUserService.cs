@@ -14,6 +14,5 @@ public sealed class CurrentUserService : ICurrentUserService
     }
 
     public Guid UserExternalId =>
-        Guid.Parse(_context.HttpContext?.User.Claims
-            .FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)!.Value);
+        Guid.Parse(_context.HttpContext?.User.FindFirst("oid")!.Value!);
 }

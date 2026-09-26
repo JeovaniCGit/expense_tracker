@@ -58,10 +58,10 @@ public class UpdateUserConcurrencyTest : BaseIntegrationTest
         await db.SaveChangesAsync();
         
         var firstUpdateDto = new UserBuilder()
-            .BuildUpdateUserDto(userSeed.ExternalId.ToString(), userSeed.Version);
+            .BuildUpdateUserDto(userSeed.Version);
         
         var secondUpdateDto = new UserBuilder()
-            .BuildUpdateUserDto(userSeed.ExternalId.ToString(), userSeed.Version);
+            .BuildUpdateUserDto(userSeed.Version);
 
         return userSeed.Id;
     }

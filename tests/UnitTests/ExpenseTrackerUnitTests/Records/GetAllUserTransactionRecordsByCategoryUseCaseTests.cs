@@ -55,8 +55,13 @@ public class GetAllUserTransactionRecordsByCategoryUseCaseTests
     {
         // Arrange
         Guid currentUserExternalId = Guid.NewGuid();
-
         Guid categoryExternalId = Guid.NewGuid();
+
+        var currentUser = new User
+        {
+            Id = 1,
+            ExternalId = currentUserExternalId
+        };
 
         _currentUserServiceMock.Setup(
             service => service.UserExternalId)
@@ -66,11 +71,12 @@ public class GetAllUserTransactionRecordsByCategoryUseCaseTests
             repo => repo.GetUserByExternalId(
                 It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()))
-        .ReturnsAsync(It.IsAny<User>());
+        .ReturnsAsync(currentUser);
 
         _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetTransactionCategoryIdByExternalId(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
                 It.IsAny<Guid>(),
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync((long?)null);
 
@@ -89,8 +95,9 @@ public class GetAllUserTransactionRecordsByCategoryUseCaseTests
         );
 
         _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetTransactionCategoryIdByExternalId(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
                 categoryExternalId,
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
@@ -100,11 +107,8 @@ public class GetAllUserTransactionRecordsByCategoryUseCaseTests
     public async Task GetAllUserTransactionRecordsByCategory_WhenRequestIsValid_ShouldReturnIEnumerableOfGetTransactionRecordResponseDto()
     {
         // Arrange
-        Guid colletionExternalId = Guid.NewGuid();
         Guid categoryExternalId = Guid.NewGuid();
-
         Guid currentUserExternalId = Guid.NewGuid();
-
         Guid record1ExternalId = Guid.NewGuid();
         Guid record2ExternalId = Guid.NewGuid();
         Guid record3ExternalId = Guid.NewGuid();
@@ -164,8 +168,9 @@ public class GetAllUserTransactionRecordsByCategoryUseCaseTests
         .ReturnsAsync(existingUser);
 
         _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetTransactionCategoryIdByExternalId(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
                 It.IsAny<Guid>(),
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingCategory.Id);
 
@@ -195,8 +200,9 @@ public class GetAllUserTransactionRecordsByCategoryUseCaseTests
         );
 
         _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetTransactionCategoryIdByExternalId(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
                 categoryExternalId,
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );

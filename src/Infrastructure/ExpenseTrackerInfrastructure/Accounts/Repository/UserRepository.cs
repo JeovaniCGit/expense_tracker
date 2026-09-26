@@ -44,24 +44,17 @@ internal sealed class UserRepository : IUserRepository
     {
         return await _context.Users
             .AsNoTracking()
-            .Include(u => u.Role)
-            .ThenInclude(r => r.RolePermissions)
-            .ThenInclude(rp => rp.Permission)
             .FirstOrDefaultAsync(u => u.Email.Equals(email), ctoken);
     }
 
     public async Task<User?> GetUserByExternalId(Guid id, CancellationToken ctoken = default)
     {
         return await _context.Users
-            .Include(u => u.PasswordHistory)
             .FirstOrDefaultAsync(u => u.ExternalId == id, ctoken);
     }
 
     public async Task<int> UpdateUser(User user, CancellationToken ctoken = default)
     {
-        if (string.IsNullOrEmpty(user.Password))
-            _context.Entry(user).Property(u => u.Password).IsModified = false;
-
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;
     }

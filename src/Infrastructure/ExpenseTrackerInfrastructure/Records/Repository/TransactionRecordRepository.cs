@@ -33,9 +33,9 @@ public class TransactionRecordRepository : ITransactionRecordRepository
         return affected;
     }
 
-    public async Task<TransactionRecord?> GetTransactionRecordByExternalId(Guid externalId, CancellationToken ctoken = default)
+    public async Task<TransactionRecord?> GetTransactionRecordByExternalIdForUser(Guid externalId, long userId, CancellationToken ctoken = default)
     {
-        TransactionRecord? record = await _context.TransactionRecords.AsNoTracking().FirstOrDefaultAsync(tr => tr.ExternalId == externalId, ctoken);
+        TransactionRecord? record = await _context.TransactionRecords.FirstOrDefaultAsync(tr => tr.ExternalId == externalId && tr.TransactionUserId == userId, ctoken);
         return record;
     }
 
@@ -60,7 +60,7 @@ public class TransactionRecordRepository : ITransactionRecordRepository
         int affected = await _context.SaveChangesAsync(ctoken);
         return affected;
     }
-
+    
     public async Task<IEnumerable<TransactionRecord>> GetAllUserTransactionsByCollection(long userId, long collectionId, CancellationToken ctoken = default)
     {
         return await _context.TransactionRecords.AsNoTracking()

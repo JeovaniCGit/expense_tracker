@@ -45,19 +45,12 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
     {
         await _addCategoryValidator.ValidateAndThrowAsync(request, ctoken);
 
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(request.UserExternalId), ctoken);
-        if (existingUser is null)
-            return TransactionRecordCategoryErrors.InvalidArgs;
-
+        Guid existingUserExternalId = _currentUserService.UserExternalId;
+        var existingUser = await _userRepository.GetUserByExternalId(existingUserExternalId, ctoken);
         try
         {
-            TransactionRecordCategory newCategory = new TransactionRecordCategory
-            {
-                CategoryName = request.CategoryName,
-                UserId = existingUser.Id
-            };
-
-            TransactionRecordCategory addedCategory = await _transactionRecordCategoryRepository.AddTransactionCategory(newCategory, ctoken);
+            TransactionRecordCategory addedCategory = await _transactionRecordCategoryRepository.AddTransactionCategory(
+                new TransactionRecordCategory { CategoryName = request.CategoryName, UserId = existingUser!.Id }, ctoken);
 
             return new AddTransactionRecordCategoryResponseDto
             {
@@ -76,21 +69,14 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
     public async Task<ErrorOr<int>> DeleteTransactionRecordCategory(string categoryExternalId, CancellationToken ctoken = default)
     {
         Guid currentUserExternalId = _currentUserService.UserExternalId;
-
-        TransactionRecordCategory? existingCategory = await _transactionRecordCategoryRepository.GetTransactionsCategoryByExternalId(Guid.Parse(categoryExternalId), ctoken);
-
-        if (existingCategory is null)
-            return TransactionRecordCategoryErrors.NotFound;
-
-        User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
-
-        if (currentUser!.RoleId == (long)UserRoleEnum.Admin)
-            return await _transactionRecordCategoryRepository.DeleteTransactionCategory(existingCategory, ctoken);
-
-        if (existingCategory.UserId != currentUser.Id)
-            return TransactionRecordCategoryErrors.NotOwner;
-
-        return await _transactionRecordCategoryRepository.DeleteTransactionCategory(existingCategory, ctoken);
+        User? existingUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
+        
+        var list = new List<Guid> { Guid.Parse(categoryExternalId) };
+        var existingCategories = await _transactionRecordCategoryRepository.GetUserCategoriesByExternalIds(existingUser!.Id, list, ctoken);
+        if (!existingCategories.Any())
+            return TransactionRecordCategoryErrors.InvalidArgs;
+        
+        return await _transactionRecordCategoryRepository.DeleteTransactionCategory(existingCategories.First(), ctoken);
     }
 
     public async Task<ErrorOr<IEnumerable<GetTransactionRecordCategoryResponseDto>>> GetAllUserTransactionCategories(CancellationToken ctoken = default)
@@ -98,7 +84,7 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
         Guid currentUserExternalId = _currentUserService.UserExternalId;
         User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
 
-        IEnumerable<TransactionRecordCategory> userCategories = await _transactionRecordCategoryRepository.GetAllUserTransactionCategories(currentUser.Id, ctoken);
+        IEnumerable<TransactionRecordCategory> userCategories = await _transactionRecordCategoryRepository.GetAllUserTransactionCategories(currentUser!.Id, ctoken);
 
         return userCategories.Select(uc => new GetTransactionRecordCategoryResponseDto
         {
@@ -169,18 +155,17 @@ public sealed class TransactionRecordCategoryService : ITransactionRecordCategor
 
         Guid currentUserExternalId = _currentUserService.UserExternalId;
         User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
+        
+        var categoriesList = new List<Guid> { Guid.Parse(request.CategoryExternalId) };
+        var categories = await _transactionRecordCategoryRepository.GetUserCategoriesByExternalIds(currentUser!.Id, categoriesList, ctoken);
 
-        TransactionRecordCategory? existingCategory = await _transactionRecordCategoryRepository.GetTransactionsCategoryByExternalId(Guid.Parse(request.CategoryExternalId), ctoken);
-
-        if (existingCategory is null)
+        if (!categories.Any())
             return TransactionRecordCategoryErrors.InvalidArgs;
-
-        if (existingCategory!.UserId != currentUser!.Id)
-            return TransactionRecordCategoryErrors.NotOwner;
 
         try
         {
-            existingCategory.CategoryName = request.CategoryName;
+            var tc = categories!.First();
+            tc.CategoryName = request.CategoryName;
 
             return await _transactionRecordCategoryRepository.SaveChanges(ctoken);
         }

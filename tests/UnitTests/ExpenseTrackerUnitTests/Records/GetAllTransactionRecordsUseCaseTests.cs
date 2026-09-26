@@ -14,7 +14,7 @@ using FluentAssertions;
 using FluentValidation;
 using Moq;
 
-namespace EExpenseTracker.UnitTests.Records;
+namespace ExpenseTracker.UnitTests.Records;
 
 public class GetAllTransactionRecordsUseCaseTests
 {

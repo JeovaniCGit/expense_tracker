@@ -11,11 +11,6 @@ public sealed class AddTransactionRecordDtoValidator : AbstractValidator<AddTran
             .GreaterThan(0)
             .WithMessage("Transaction value must be greater than 0.");
 
-        RuleFor(tr => tr.TransactionUserExternalId)
-             .NotEmpty()
-             .Must(id => Guid.TryParse(id, out _))
-             .WithMessage("Invalid arguments.");
-
         RuleFor(tr => tr.TransactionCategoryExternalId)
             .NotEmpty()
             .Must(id => Guid.TryParse(id, out _))

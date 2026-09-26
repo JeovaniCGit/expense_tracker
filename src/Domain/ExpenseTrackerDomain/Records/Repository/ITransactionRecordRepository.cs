@@ -8,7 +8,7 @@ public interface ITransactionRecordRepository
 
     Task<int> DeleteTransactionRecord(TransactionRecord record, CancellationToken ctoken = default);
 
-    Task<TransactionRecord?> GetTransactionRecordByExternalId(Guid externalId, CancellationToken ctoken = default);
+    Task<TransactionRecord?> GetTransactionRecordByExternalIdForUser(Guid externalId, long userId, CancellationToken ctoken = default);
 
     Task<IEnumerable<TransactionRecord>> GetAllUserTransactionsByCategory(long userId, long categoryId, CancellationToken ctoken = default);
 

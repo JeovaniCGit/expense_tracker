@@ -9,10 +9,5 @@ public sealed class AddTransactionRecordCategoryDtoValidator : AbstractValidator
         RuleFor(tc => tc.CategoryName)
             .NotEmpty()
             .WithMessage("A category name must be provided.");
-
-        RuleFor(tc => tc.UserExternalId)
-            .NotEmpty()
-            .Must(id => Guid.TryParse(id, out _))
-            .WithMessage("Invalid arguments.");
     }
 }

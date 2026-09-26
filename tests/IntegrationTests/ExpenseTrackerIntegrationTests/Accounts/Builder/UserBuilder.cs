@@ -1,7 +1,6 @@
 using Bogus;
 using ExpenseTracker.Application.Accounts.Contracts.Requests;
 using ExpenseTracker.Domain.Accounts.Entity;
-using ExpenseTracker.Domain.Authorization.UserRoles.Entity;
 using ExpenseTracker.Domain.Collections.Entity;
 using ExpenseTracker.Domain.Records.Entity;
 
@@ -13,12 +12,7 @@ public class UserBuilder
     private string _firstname;
     private string _lastname;
     private string _email;
-    private string _password;
-    private DateTimeOffset _passwordLastUpdated;
-    private bool _isEmailVerified;
     private long _roleId = 3;
-    private UserRole _role;
-    private PasswordHistory _passwordHistory;
     private ICollection<TransactionRecord> _transactions;
     private ICollection<TransactionCollection> _collections;
     private Guid? _externalId;
@@ -28,9 +22,6 @@ public class UserBuilder
         _firstname = _faker.Name.FirstName();
         _lastname = _faker.Name.LastName();
         _email = _faker.Internet.Email();
-        _password = GeneratePassword();
-        _passwordLastUpdated = _faker.Date.PastOffset().ToUniversalTime();
-        _isEmailVerified = false;
         _transactions = new List<TransactionRecord>();
         _collections = new List<TransactionCollection>();
     }
@@ -53,42 +44,12 @@ public class UserBuilder
         return this;
     }
 
-    public UserBuilder WithPassword(string password)
-    {
-        _password = password;
-        return this;
-    }
-
-    public UserBuilder WithPasswordLastUpdated(DateTimeOffset passwordLastUpdated)
-    {
-        _passwordLastUpdated = passwordLastUpdated;
-        return this;
-    }
-
-    public UserBuilder WithIsEmailVerified(bool isEmailVerified)
-    {
-        _isEmailVerified = isEmailVerified;
-        return this;
-    }
-
     public UserBuilder WithRoleId(long roleId)
     {
         _roleId = roleId;
         return this;
     }
-
-    public UserBuilder WithRole(UserRole role)
-    {
-        _role = role;
-        return this;
-    }
-
-    public UserBuilder WithPasswordHistory(PasswordHistory passwordHistory)
-    {
-        _passwordHistory = passwordHistory;
-        return this;
-    }
-
+    
     public UserBuilder WithTransactions(ICollection<TransactionRecord> transactions)
     {
         _transactions = transactions;
@@ -118,11 +79,10 @@ public class UserBuilder
         };
     }
     
-    public UpdateUserRequestDto BuildUpdateUserDto(string userExternalId, uint version)
+    public UpdateUserRequestDto BuildUpdateUserDto(uint version)
     {
         return new UpdateUserRequestDto()
         {
-            UserExternalId = userExternalId,
             Firstname = _firstname,
             Lastname = _lastname,
             Email = _email,
@@ -138,12 +98,6 @@ public class UserBuilder
             Firstname = _firstname,
             Lastname = _lastname,
             Email = _email,
-            Password = _password,
-            PasswordLastUpdated = _passwordLastUpdated,
-            IsEmailVerified = _isEmailVerified,
-            RoleId = _roleId,
-            Role = _role,
-            PasswordHistory = _passwordHistory,
             Transactions = _transactions,
             Collections = _collections
         };

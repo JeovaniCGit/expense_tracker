@@ -95,12 +95,11 @@ public class TransactionRecordBuilder
         };
     }
 
-    public AddTransactionRecordRequestDto BuildAddTransactionRecordRequestDto(string userExternalId, string categoryExternalId, string collectionExternalId)
+    public AddTransactionRecordRequestDto BuildAddTransactionRecordRequestDto(string categoryExternalId, string collectionExternalId)
     {
         return new AddTransactionRecordRequestDto
         {
             TransactionValue =  _transactionValue,
-            TransactionUserExternalId = userExternalId,
             TransactionCategoryExternalId = categoryExternalId,
             TransactionCollectionExternalId = collectionExternalId
         };

@@ -42,95 +42,59 @@ public class DeleteTransactionCategoryUseCaseTests
     }
 
     [Fact]
-    public async Task DeleteTransactionCategory_WhenCategoryDoesNotExist_ShouldReturnNotFoundError()
+    public async Task DeleteTransactionCategory_WhenCategoryDoesNotExist_ShouldReturnInvalidArgsError()
     {
         // Arrange
         Guid currentUserExternalId = Guid.NewGuid();
-
         string requestExternalId = Guid.NewGuid().ToString();
-
-        _currentUserServiceMock.Setup(
-            service => service.UserExternalId)
-        .Returns(currentUserExternalId);
-
-        _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                It.IsAny<Guid>(), 
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync((TransactionRecordCategory?)null);
-
-        // Act
-        var result = await _sut.DeleteTransactionRecordCategory(requestExternalId, CancellationToken.None);
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(TransactionRecordCategoryErrors.NotFound);
-
-        _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                Guid.Parse(requestExternalId), 
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
-    [Fact]
-    public async Task DeleteTransactionCategory_WhenUserIsNotOwnerOrAdmin_ShouldReturnNotOwnerError()
-    {
-        // Arrange
-        Guid currentUserExternalId = Guid.NewGuid();
-        long existingUserId = 1;
-
-        string requestExternalId = Guid.NewGuid().ToString();
-
-        TransactionRecordCategory existingCategory = new TransactionRecordCategory
+    
+        User targetUser = new User
         {
-            Id = 1,
-            ExternalId = Guid.Parse(requestExternalId),
-            UserId = 2
+            Firstname = "John",
+            Lastname = "Doe",
+            Email = "john@doe.com",
+            ExternalId = Guid.NewGuid()
         };
-
+        
         _currentUserServiceMock.Setup(
             service => service.UserExternalId)
         .Returns(currentUserExternalId);
-
-        _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                It.IsAny<Guid>(), 
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingCategory);
 
         _userRepositoryMock.Setup(
             repo => repo.GetUserByExternalId(
-                It.IsAny<Guid>(), 
+                It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()))
-        .ReturnsAsync(new User
-        {
-            Id = existingUserId,
-            RoleId = (long)UserRoleEnum.RegularUser
-        });
+        .ReturnsAsync(targetUser);
+        
+        _transactionRecordCategoryRepositoryMock.Setup(
+            repo => repo.GetUserCategoriesByExternalIds(
+                It.IsAny<long>(), 
+                It.IsAny<List<Guid>>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(new List<TransactionRecordCategory>());
 
         // Act
         var result = await _sut.DeleteTransactionRecordCategory(requestExternalId, CancellationToken.None);
 
         // Assert
         result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(TransactionRecordCategoryErrors.NotOwner);
+        result.FirstError.Should().Be(TransactionRecordCategoryErrors.InvalidArgs);
 
-        _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                Guid.Parse(requestExternalId), 
-                It.IsAny<CancellationToken>()),
-            Times.Once
+        _userRepositoryMock.Verify(repo => repo.GetUserByExternalId(
+            It.IsAny<Guid>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once()
         );
-
-        _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(
-                currentUserExternalId, 
+        
+        _transactionRecordCategoryRepositoryMock.Verify(
+            repo => repo.GetUserCategoriesByExternalIds(
+                It.IsAny<long>(), 
+                It.IsAny<List<Guid>>(), 
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
+    
 
     [Fact]
     public async Task DeleteTransactionCategory_WhenRequestIsValid_ShouldReturnAffectedRows()
@@ -146,11 +110,14 @@ public class DeleteTransactionCategoryUseCaseTests
             ExternalId = Guid.Parse(requestExternalId)
         };
 
-        TransactionRecordCategory existingCategory = new TransactionRecordCategory
+        var existingCategories = new List<TransactionRecordCategory>
         {
-            Id = 1,
-            ExternalId = Guid.Parse(requestExternalId),
-            UserId = existingUser.Id,
+            new TransactionRecordCategory
+            {
+                Id = 1,
+                ExternalId = Guid.Parse(requestExternalId),
+                UserId = existingUser.Id,
+            }
         };
 
         TransactionRecordCategory? capturedCategory = null;
@@ -159,17 +126,18 @@ public class DeleteTransactionCategoryUseCaseTests
             service => service.UserExternalId)
         .Returns(currentUserExternalId);
 
-        _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                It.IsAny<Guid>(), 
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingCategory);
-
         _userRepositoryMock.Setup(
             repo => repo.GetUserByExternalId(
                 It.IsAny<Guid>(), 
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingUser);
+        
+        _transactionRecordCategoryRepositoryMock.Setup(
+            repo => repo.GetUserCategoriesByExternalIds(
+                It.IsAny<long>(), 
+                It.IsAny<List<Guid>>(), 
+                It.IsAny<CancellationToken>()))
+        .ReturnsAsync(existingCategories);
 
         //Add callback here
         _transactionRecordCategoryRepositoryMock.Setup(
@@ -186,19 +154,22 @@ public class DeleteTransactionCategoryUseCaseTests
         result.IsError.Should().BeFalse();
         result.Value.Should().Be(1);
 
-        capturedCategory?.ExternalId.Should().Be(existingCategory.ExternalId);
-        capturedCategory?.UserId.Should().Be(existingUser.Id);
+        existingCategories.Should()
+            .Contain(c => c.ExternalId == capturedCategory!.ExternalId);
 
-        _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                Guid.Parse(requestExternalId), 
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
+        capturedCategory?.UserId.Should().Be(existingUser.Id);
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
                 currentUserExternalId, 
+                It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+        
+        _transactionRecordCategoryRepositoryMock.Verify(
+            repo => repo.GetUserCategoriesByExternalIds(
+                It.IsAny<long>(), 
+                It.IsAny<List<Guid>>(), 
                 It.IsAny<CancellationToken>()),
             Times.Once
         );

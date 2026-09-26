@@ -1,12 +1,10 @@
 ﻿using ExpenseTracker.Application.Accounts.Services.UserServices;
 using ExpenseTracker.Application.Accounts.Validators;
-using ExpenseTracker.Application.Authentication.AuthenticationServices;
 using ExpenseTracker.Application.Authorization.Tokens.Services;
 using ExpenseTracker.Application.Categories.Services;
 using ExpenseTracker.Application.Categories.Validators;
 using ExpenseTracker.Application.Collections.Services;
 using ExpenseTracker.Application.Collections.Validators;
-using ExpenseTracker.Application.Emails.Jobs;
 using ExpenseTracker.Application.Records.Services;
 using ExpenseTracker.Application.Records.Validators;
 using FluentValidation;
@@ -21,7 +19,6 @@ public static class ApplicationSetupConfiguration
     {
         AddServices(services);
         AddValidators(services);
-        services.AddTransient<SendEmailJob>();
         return services;
     }
 
@@ -31,7 +28,6 @@ public static class ApplicationSetupConfiguration
         services.AddScoped<ITransactionRecordService, TransactionRecordService>();
         services.AddScoped<ITransactionRecordCategoryService, TransactionRecordCategoryService>();
         services.AddScoped<ICollectionService, CollectionService>();
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddSingleton<IVerificationTokenObserver, NoopVerificationTokenObserver>();
         return services;

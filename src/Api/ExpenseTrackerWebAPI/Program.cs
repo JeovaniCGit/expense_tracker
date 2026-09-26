@@ -61,6 +61,7 @@ namespace ExpenseTracker.API
             app.UseRequestTimeouts();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.AddUserProvisioningMiddleware();
             app.UseRateLimiter();
             app.MapControllers();
             

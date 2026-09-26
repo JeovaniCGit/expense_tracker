@@ -42,50 +42,18 @@ public class AddTransactionCategoryUseCaseTests
     }
 
     [Fact]
-    public async Task AddTransactionCategory_WhenUserDoesNotExist_ShouldReturnInvalidArgsError()
-    {
-        // Arrange
-        var request = new AddTransactionRecordCategoryRequestDto
-        {
-            CategoryName = "Education",
-            UserExternalId = Guid.NewGuid().ToString()
-        };
-
-        _userRepositoryMock.Setup(
-            repo => repo.GetUserByExternalId(
-               It.IsAny<Guid>(), 
-                It.IsAny<CancellationToken>())
-        ).ReturnsAsync((User?)null);
-
-        // Act
-        var result = await _sut.AddUserTransactionRecordCategory(request, CancellationToken.None);
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(TransactionRecordCategoryErrors.InvalidArgs);
-
-        _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(
-                Guid.Parse(request.UserExternalId), 
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
-    [Fact]
     public async Task AddTransactionCategory_WhenRequestIsValid_ShouldReturnAddTransactionRecordCategoryResponseDto()
     {
         // Arrange
         var request = new AddTransactionRecordCategoryRequestDto
         {
             CategoryName = "Education",
-            UserExternalId = Guid.NewGuid().ToString()
         };
 
         User existingUser = new User
         {
             Id = 1,
-            ExternalId = Guid.Parse(request.UserExternalId)
+            ExternalId = Guid.NewGuid()
         };
 
         var fixedCreatedAtTimestamp = new DateTimeOffset(2024, 1, 15, 8, 0, 0, TimeSpan.Zero);
@@ -133,7 +101,7 @@ public class AddTransactionCategoryUseCaseTests
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
-                Guid.Parse(request.UserExternalId), 
+                It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );

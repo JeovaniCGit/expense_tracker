@@ -25,7 +25,7 @@ public class CollectionsCrudFlowTest : BaseIntegrationTest
         var userExternalId = await SeedUserData();
 
         var addCollectionDto = new TransactionCollectionBuilder()
-            .BuildAddCollectionRequestDto(userExternalId.ToString());
+            .BuildAddCollectionRequestDto();
 
         // Act - create
         

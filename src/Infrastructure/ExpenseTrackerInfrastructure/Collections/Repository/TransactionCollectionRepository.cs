@@ -30,10 +30,10 @@ internal class TransactionCollectionRepository : ITransactionCollectionRepositor
         return affected;
     }
 
-    public async Task<long?> GetCollectionIdByExternalId(Guid externalId, CancellationToken ctoken = default)
+    public async Task<long?> GetCollectionIdByExternalIdForUser(Guid externalId, long userId, CancellationToken ctoken = default)
     {
         return await _context.Collections.AsNoTracking()
-            .Where(c => c.ExternalId == externalId)
+            .Where(c => c.ExternalId == externalId && c.UserId == userId)
             .Select(c => c.Id)
             .FirstOrDefaultAsync();
     }
