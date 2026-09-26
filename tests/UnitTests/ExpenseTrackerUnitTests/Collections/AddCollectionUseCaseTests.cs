@@ -38,44 +38,6 @@ public class AddCollectionUseCaseTests
     }
 
     [Fact]
-    public async Task AddCollection_WhenUserDoesNotExist_ShouldReturnInvalidArgsError()
-    {
-        // Arrange
-        var fixedStartTimestamp = new DateTimeOffset(2024, 3, 15, 10, 30, 0, TimeSpan.Zero);
-        var fixedEndTimestamp = new DateTimeOffset(2024, 4, 15, 10, 30, 0, TimeSpan.Zero);
-
-        var request = new AddCollectionRequestDto
-        {
-            Description = "some-description",
-            UserExternalId = Guid.NewGuid().ToString(),
-            EstimatedBudget = 5,
-            RealBudget = 2,
-            StartDate = fixedStartTimestamp,
-            EndDate = fixedEndTimestamp
-        };
-
-        _userRepositoryMock.Setup(
-            repo => repo.GetUserByExternalId(
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync((User?)null);
-
-        // Act
-        var result = await _sut.AddCollection(request, CancellationToken.None);
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(CollectionErrors.InvalidArgs);
-
-        _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(
-                Guid.Parse(request.UserExternalId),
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
-    [Fact]
     public async Task AddCollection_WhenRequestIsValid_ShouldReturnAddCollectionResponseDto()
     {
         // Arrange
@@ -86,7 +48,6 @@ public class AddCollectionUseCaseTests
         var request = new AddCollectionRequestDto
         {
             Description = "some-description",
-            UserExternalId = Guid.NewGuid().ToString(),
             EstimatedBudget = 5,
             RealBudget = 2,
             StartDate = fixedStartTimestamp,
@@ -105,7 +66,7 @@ public class AddCollectionUseCaseTests
         User existingUser = new User
         {
             Id = 1,
-            ExternalId = Guid.Parse(request.UserExternalId)
+            ExternalId = Guid.NewGuid()
         };
 
         _userRepositoryMock.Setup(
@@ -140,7 +101,7 @@ public class AddCollectionUseCaseTests
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
-                Guid.Parse(request.UserExternalId),
+                It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );

@@ -38,22 +38,6 @@ internal sealed class UserConfiguration : BaseEntityConfiguration<User>
         builder.HasIndex(u => u.Email)
             .IsUnique();
 
-        builder.Property(p => p.Password)
-            .IsRequired();
-
-        builder.Property(p => p.RoleId)
-            .IsRequired();
-
-        builder.HasOne(u => u.Role)
-            .WithMany()
-            .HasForeignKey(fk => fk.RoleId);
-
-        builder.Property(p => p.RoleId)
-            .IsRequired();
-
-        builder.Property(p => p.RoleId)
-            .IsRequired();
-
         builder.HasQueryFilter(p => !p.IsDeleted);
 
         builder.Property(p => p.Version)

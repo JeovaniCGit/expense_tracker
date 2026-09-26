@@ -3,6 +3,7 @@ using System;
 using ExpenseTracker.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ExpenseTracker.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260916210044_RemoveLocalRoleBasedAuthorization")]
+    partial class RemoveLocalRoleBasedAuthorization
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,6 +24,35 @@ namespace ExpenseTracker.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("ExpenseTracker.Domain.Accounts.Entity.PasswordHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ExternalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("PasswordHistory");
+                });
 
             modelBuilder.Entity("ExpenseTracker.Domain.Accounts.Entity.User", b =>
                 {
@@ -57,10 +89,20 @@ namespace ExpenseTracker.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Lastname")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("PasswordLastUpdated")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -344,6 +386,38 @@ namespace ExpenseTracker.Infrastructure.Migrations
                     b.ToTable("Collections");
                 });
 
+            modelBuilder.Entity("ExpenseTracker.Domain.Email.Entity.EmailDelivery", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("ExternalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExternalId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("EmailDeliveries");
+                });
+
             modelBuilder.Entity("ExpenseTracker.Domain.Records.Entity.TransactionRecord", b =>
                 {
                     b.Property<long>("Id")
@@ -412,6 +486,17 @@ namespace ExpenseTracker.Infrastructure.Migrations
                     b.ToTable("TransactionRecords");
                 });
 
+            modelBuilder.Entity("ExpenseTracker.Domain.Accounts.Entity.PasswordHistory", b =>
+                {
+                    b.HasOne("ExpenseTracker.Domain.Accounts.Entity.User", "User")
+                        .WithOne("PasswordHistory")
+                        .HasForeignKey("ExpenseTracker.Domain.Accounts.Entity.PasswordHistory", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ExpenseTracker.Domain.Authorization.Tokens.Entity.Token", b =>
                 {
                     b.HasOne("ExpenseTracker.Domain.Authorization.Tokens.Entity.TokenType", "TokenType")
@@ -453,6 +538,17 @@ namespace ExpenseTracker.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ExpenseTracker.Domain.Email.Entity.EmailDelivery", b =>
+                {
+                    b.HasOne("ExpenseTracker.Domain.Accounts.Entity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ExpenseTracker.Domain.Records.Entity.TransactionRecord", b =>
                 {
                     b.HasOne("ExpenseTracker.Domain.Categories.Entity.TransactionRecordCategory", "TransactionCategory")
@@ -483,6 +579,9 @@ namespace ExpenseTracker.Infrastructure.Migrations
             modelBuilder.Entity("ExpenseTracker.Domain.Accounts.Entity.User", b =>
                 {
                     b.Navigation("Collections");
+
+                    b.Navigation("PasswordHistory")
+                        .IsRequired();
 
                     b.Navigation("Transactions");
                 });

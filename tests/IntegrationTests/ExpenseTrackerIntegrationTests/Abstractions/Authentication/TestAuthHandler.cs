@@ -20,15 +20,15 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var userExternalId = Request.Headers["X-UserId"].FirstOrDefault() ?? "default-user";
-        var permissions = Request.Headers["X-UserPerm"].FirstOrDefault()?.Split(',') ?? Array.Empty<string>();
+        var roles = Request.Headers["X-UserPerm"].FirstOrDefault()?.Split(',') ?? Array.Empty<string>();
 
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, userExternalId)
+            new Claim("oid", userExternalId)
         };
 
-        claims.AddRange(permissions.Select(p =>
-            new Claim("Permission", p)));
+        claims.AddRange(roles.Select(r =>
+            new Claim(ClaimTypes.Role, r)));
 
         var identity = new ClaimsIdentity(claims, Scheme);
         var principal = new ClaimsPrincipal(identity);

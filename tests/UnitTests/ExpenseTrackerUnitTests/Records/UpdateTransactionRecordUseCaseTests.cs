@@ -50,8 +50,8 @@ public class UpdateTransactionRecordUseCaseTests
         );
     }
 
-    [Fact]
-    public async Task UpdateTransactionRecord_WhenRecordDoesNotExist_ShoudReturnInvalidArgsError()
+        [Fact]
+    public async Task UpdateTransactionRecord_WhenCategoryParameterDoesNotExist_ShoudReturnInvalidArgsError()
     {
         // Arrange
         Guid currentUserExternalId = Guid.NewGuid();
@@ -80,12 +80,12 @@ public class UpdateTransactionRecordUseCaseTests
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingUser);
 
-        _transactionRecordRepositoryMock.Setup(
-            repo => repo.GetUserTransactionByCategoryExternalId(
+        _transactionRecordCategoryRepositoryMock.Setup(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
                 It.IsAny<Guid>(),
-                It.IsAny<Guid>(),
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>())
-        ).ReturnsAsync((TransactionRecord?)null);
+        ).ReturnsAsync((long?) null);
 
         // Act
         var result = await _sut.UpdateUserTransaction(request, CancellationToken.None);
@@ -101,17 +101,18 @@ public class UpdateTransactionRecordUseCaseTests
             Times.Once
         );
 
-        _transactionRecordRepositoryMock.Verify(
-            repo => repo.GetUserTransactionByCategoryExternalId(
-                Guid.Parse(request.TransactionExternalId),
+        _transactionRecordCategoryRepositoryMock.Verify(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
                 Guid.Parse(request.TransactionCategoryExternalId),
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
 
+    
     [Fact]
-    public async Task UpdateTransactionRecord_WhenUserIsNotOwner_ShoudReturnNotOwnerError()
+    public async Task UpdateTransactionRecord_WhenRecordDoesNotExist_ShoudReturnNotFoundError()
     {
         // Arrange
         Guid currentUserExternalId = Guid.NewGuid();
@@ -130,19 +131,6 @@ public class UpdateTransactionRecordUseCaseTests
             ExternalId = Guid.NewGuid()
         };
 
-        TransactionRecord existingRecord = new TransactionRecord
-        {
-            Id = 3,
-            ExternalId = Guid.Parse(request.TransactionExternalId),
-            TransactionValue = 20,
-            TransactionUserId = 2,
-            TransactionCategory = new TransactionRecordCategory
-            {
-                Id = 1,
-                ExternalId = Guid.Parse(request.TransactionCategoryExternalId)
-            }
-        };
-
         _currentUserServiceMock.Setup(
             service => service.UserExternalId)
         .Returns(currentUserExternalId);
@@ -153,19 +141,26 @@ public class UpdateTransactionRecordUseCaseTests
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingUser);
 
+        _transactionRecordCategoryRepositoryMock.Setup(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
+                It.IsAny<Guid>(),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>())
+        ).ReturnsAsync(It.IsAny<long>());
+        
         _transactionRecordRepositoryMock.Setup(
-            repo => repo.GetUserTransactionByCategoryExternalId(
+            repo => repo.GetTransactionRecordByExternalIdForUser(
                 It.IsAny<Guid>(),
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()
-            )).ReturnsAsync(existingRecord);
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>())
+        ).ReturnsAsync((TransactionRecord?)null);
 
         // Act
         var result = await _sut.UpdateUserTransaction(request, CancellationToken.None);
 
         // Assert
         result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(TransactionRecordErrors.NotOwner);
+        result.FirstError.Should().Be(TransactionRecordErrors.NotFound);
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
@@ -174,15 +169,24 @@ public class UpdateTransactionRecordUseCaseTests
             Times.Once
         );
 
-        _transactionRecordRepositoryMock.Verify(
-            repo => repo.GetUserTransactionByCategoryExternalId(
-                Guid.Parse(request.TransactionExternalId),
+        _transactionRecordCategoryRepositoryMock.Verify(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
                 Guid.Parse(request.TransactionCategoryExternalId),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+        
+        _transactionRecordRepositoryMock.Verify(
+            repo => repo.GetTransactionRecordByExternalIdForUser(
+                Guid.Parse(request.TransactionExternalId),
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
 
+   
     [Fact]
     public async Task UpdateTransactionRecord_WhenRequestIsValid_ShoudReturnAffectedRows()
     {
@@ -222,12 +226,19 @@ public class UpdateTransactionRecordUseCaseTests
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingUser);
 
+        _transactionRecordCategoryRepositoryMock.Setup(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
+                It.IsAny<Guid>(),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>())
+        ).ReturnsAsync(It.IsAny<long>());
+        
         _transactionRecordRepositoryMock.Setup(
-            repo => repo.GetUserTransactionByCategoryExternalId(
+            repo => repo.GetTransactionRecordByExternalIdForUser(
                 It.IsAny<Guid>(),
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()
-            )).ReturnsAsync(existingRecord);
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>())
+        ).ReturnsAsync(existingRecord);
 
         _transactionRecordRepositoryMock.Setup(
             repo => repo.SaveChanges(
@@ -248,10 +259,18 @@ public class UpdateTransactionRecordUseCaseTests
             Times.Once
         );
 
-        _transactionRecordRepositoryMock.Verify(
-            repo => repo.GetUserTransactionByCategoryExternalId(
-                Guid.Parse(request.TransactionExternalId),
+        _transactionRecordCategoryRepositoryMock.Verify(
+            repo => repo.GetTransactionCategoryIdByExternalIdForUser(
                 Guid.Parse(request.TransactionCategoryExternalId),
+                It.IsAny<long>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+        
+        _transactionRecordRepositoryMock.Verify(
+            repo => repo.GetTransactionRecordByExternalIdForUser(
+                Guid.Parse(request.TransactionExternalId),
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );

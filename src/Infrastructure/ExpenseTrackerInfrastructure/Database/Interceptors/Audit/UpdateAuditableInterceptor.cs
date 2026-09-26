@@ -48,9 +48,6 @@ internal sealed class UpdateAuditableInterceptor : SaveChangesInterceptor
                     break;
 
                 case EntityState.Modified:
-                    if (entry.Entity is User && entry.Property("Password").IsModified && !Equals(entry.Property("Password").OriginalValue, entry.Property("Password").CurrentValue))
-                        SetCurrentPropertyDatetimeValue(entry, nameof(User.PasswordLastUpdated), utcNow);
-
                     SetCurrentPropertyDatetimeValue(entry, nameof(AuditEntity.UpdatedAt), utcNow);
                     entry.Property("UpdatedBy").CurrentValue = executerUser;
                     break;

@@ -14,30 +14,18 @@ namespace ExpenseTracker.UnitTests.Accounts;
 public class GetAllUsersUseCaseTests
 {
     private readonly Mock<IUserRepository> _userRepositoryMock;
-    private readonly Mock<IPasswordHistoryRepository> _passwordHistoryMock;
-    private readonly Mock<IPasswordHasher> _passwordHasherMock;
-    private readonly Mock<IValidator<AddUserRequestDto>> _addUserValidatorMock;
     private readonly Mock<IValidator<UpdateUserRequestDto>> _updateUserValidatorMock;
-    private readonly Mock<IDateProvider> _dateProviderMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly UserService _sut;
 
     public GetAllUsersUseCaseTests()
     {
         _userRepositoryMock = new Mock<IUserRepository>();
-        _passwordHistoryMock = new Mock<IPasswordHistoryRepository>();
-        _passwordHasherMock = new Mock<IPasswordHasher>();
-        _addUserValidatorMock = new Mock<IValidator<AddUserRequestDto>>();
         _updateUserValidatorMock = new Mock<IValidator<UpdateUserRequestDto>>();
-        _dateProviderMock = new Mock<IDateProvider>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _sut = new UserService(
             _userRepositoryMock.Object,
-            _passwordHistoryMock.Object,
-            _passwordHasherMock.Object,
-            _addUserValidatorMock.Object,
             _updateUserValidatorMock.Object,
-            _dateProviderMock.Object,
             _currentUserServiceMock.Object
         );
     }
@@ -54,8 +42,6 @@ public class GetAllUsersUseCaseTests
                 Firstname = "John",
                 Lastname = "Doe",
                 Email = "john@doe.com",
-                Password = "hashedpassword",
-                RoleId = (long)UserRoleEnum.RegularUser,
                 ExternalId = Guid.NewGuid()
             },
 
@@ -65,8 +51,6 @@ public class GetAllUsersUseCaseTests
                 Firstname = "Jane",
                 Lastname = "Smith",
                 Email = "jane@smith.com",
-                Password = "hashedpassword",
-                RoleId = (long)UserRoleEnum.RegularUser,
                 ExternalId = Guid.NewGuid()
             }
         };

@@ -40,16 +40,18 @@ public sealed class CollectionService : ICollectionService
     {
         await _addCollectionValidator.ValidateAndThrowAsync(request, ctoken);
 
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(request.UserExternalId), ctoken);
+        Guid existingUserExternalId = _currentUserService.UserExternalId;
+        var existingUser = await _userRepository.GetUserByExternalId(existingUserExternalId, ctoken);
+        
         if (existingUser is null)
             return CollectionErrors.InvalidArgs;
-
+        
         try
         {
             TransactionCollection collectionMapped = new TransactionCollection
             {
                 Description = request.Description,
-                UserId = existingUser.Id,
+                UserId = existingUser!.Id,
                 EstimatedBudget = request.EstimatedBudget,
                 RealBudget = request.RealBudget,
                 StartDate = request.StartDate,
@@ -74,16 +76,11 @@ public sealed class CollectionService : ICollectionService
     public async Task<ErrorOr<int>> DeleteCollection(string collectionExternalId, CancellationToken ctoken = default)
     {
         Guid currentUserExternalId = _currentUserService.UserExternalId;
-
         User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
 
-        TransactionCollection? existingCollection = await _transactionCollectionRepository.GetCollectionByExternalId(Guid.Parse(collectionExternalId), ctoken);
-
+        TransactionCollection? existingCollection = await _transactionCollectionRepository.GetUserCollectionByExternalId(currentUser!.Id, Guid.Parse(collectionExternalId), ctoken);
         if (existingCollection is null)
             return CollectionErrors.NotFound;
-
-        if (currentUser.Id != existingCollection.UserId)
-            return CollectionErrors.NotOwner;
 
         return await _transactionCollectionRepository.DeleteCollection(existingCollection, ctoken);
     }
@@ -91,11 +88,9 @@ public sealed class CollectionService : ICollectionService
     public async Task<ErrorOr<IEnumerable<GetCollectionResponseDto>>> GetAllUserCollections(DateTimeOffset? startDate, DateTimeOffset? endDate, CancellationToken ctoken = default)
     {
         Guid currentUserExternalId = _currentUserService.UserExternalId;
-
         User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
 
-        IEnumerable<TransactionCollection> collections = await _transactionCollectionRepository.GetAllUserCollections(currentUser.Id, startDate?? null, endDate?? null, ctoken);
-
+        IEnumerable<TransactionCollection> collections = await _transactionCollectionRepository.GetAllUserCollections(currentUser!.Id, startDate?? null, endDate?? null, ctoken);
         return collections.Select(c => new GetCollectionResponseDto
         {
             Description = c.Description,
@@ -114,16 +109,11 @@ public sealed class CollectionService : ICollectionService
         await _updateCollectionValidator.ValidateAndThrowAsync(request, ctoken);
 
         Guid currentUserExternalId = _currentUserService.UserExternalId;
-
         User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
 
-        TransactionCollection? existingCollection = await _transactionCollectionRepository.GetCollectionByExternalId(Guid.Parse(request.CollectionExternalId), ctoken);
-
+        TransactionCollection? existingCollection = await _transactionCollectionRepository.GetUserCollectionByExternalId(currentUser!.Id, Guid.Parse(request.CollectionExternalId), ctoken);
         if (existingCollection is null)
             return CollectionErrors.InvalidArgs;
-
-        if (currentUser!.Id != existingCollection.UserId)
-            return CollectionErrors.NotOwner;
 
         existingCollection.Description = request.Description ?? existingCollection.Description;
         existingCollection.EstimatedBudget = request.EstimatedBudget ?? existingCollection.EstimatedBudget;

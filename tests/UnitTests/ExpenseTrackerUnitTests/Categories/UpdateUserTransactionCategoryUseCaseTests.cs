@@ -70,10 +70,11 @@ public class UpdateUserTransactionCategoryUseCaseTests
         .ReturnsAsync(existingUser);
 
         _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                It.IsAny<Guid>(), 
+            repo => repo.GetUserCategoriesByExternalIds(
+                It.IsAny<long>(), 
+                It.IsAny<List<Guid>>(), 
                 It.IsAny<CancellationToken>()))
-        .ReturnsAsync((TransactionRecordCategory?)null);
+        .ReturnsAsync(new List<TransactionRecordCategory>());
 
         // Act
         var result = await _sut.UpdateUserTransactionCategory(request, CancellationToken.None);
@@ -90,15 +91,16 @@ public class UpdateUserTransactionCategoryUseCaseTests
         );
 
         _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                Guid.Parse(request.CategoryExternalId),
+            repo => repo.GetUserCategoriesByExternalIds(
+                It.IsAny<long>(), 
+                It.IsAny<List<Guid>>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
 
     [Fact]
-    public async Task UpdateUserTransactionCategory_WhenUserIsNotOwner_ShouldReturnNotOwnerError()
+    public async Task UpdateUserTransactionCategory_WhenUserIsNotOwner_ShouldReturnInvalidArgsError()
     {
         // Arrange
         Guid currentUserExternalId = Guid.NewGuid();
@@ -133,19 +135,20 @@ public class UpdateUserTransactionCategoryUseCaseTests
                 It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingUser);
-
+        
         _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingCategory);
+                repo => repo.GetUserCategoriesByExternalIds(
+                    It.IsAny<long>(), 
+                    It.IsAny<List<Guid>>(), 
+                    It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TransactionRecordCategory>());
 
         // Act
         var result = await _sut.UpdateUserTransactionCategory(request, CancellationToken.None);
 
         // Assert
         result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(TransactionRecordCategoryErrors.NotOwner);
+        result.FirstError.Should().Be(TransactionRecordCategoryErrors.InvalidArgs);
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
@@ -155,8 +158,9 @@ public class UpdateUserTransactionCategoryUseCaseTests
         );
 
         _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                Guid.Parse(request.CategoryExternalId),
+            repo => repo.GetUserCategoriesByExternalIds(
+                It.IsAny<long>(), 
+                It.IsAny<List<Guid>>(), 
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
@@ -167,7 +171,6 @@ public class UpdateUserTransactionCategoryUseCaseTests
     {
         // Arrange
         Guid currentUserExternalId = Guid.NewGuid();
-
         User existingUser = new User
         {
             Id = 1,
@@ -181,12 +184,15 @@ public class UpdateUserTransactionCategoryUseCaseTests
             Version = 123
         };
 
-        TransactionRecordCategory existingCategory = new TransactionRecordCategory
+        var existingCategories = new List<TransactionRecordCategory>
         {
-            Id = 1,
-            UserId = existingUser.Id,
-            ExternalId = Guid.Parse(request.CategoryExternalId),
-            CategoryName = "Education"
+            new TransactionRecordCategory
+            {
+                Id = 1,
+                UserId = existingUser.Id,
+                ExternalId = Guid.Parse(request.CategoryExternalId),
+                CategoryName = "Education"
+            }
         };
 
         _currentUserServiceMock.Setup(
@@ -200,10 +206,11 @@ public class UpdateUserTransactionCategoryUseCaseTests
         .ReturnsAsync(existingUser);
 
         _transactionRecordCategoryRepositoryMock.Setup(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                It.IsAny<Guid>(),
+            repo => repo.GetUserCategoriesByExternalIds(
+                It.IsAny<long>(), 
+                It.IsAny<List<Guid>>(), 
                 It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingCategory);
+        .ReturnsAsync(existingCategories);
 
         _transactionRecordCategoryRepositoryMock.Setup(
             repo => repo.SaveChanges(
@@ -216,6 +223,7 @@ public class UpdateUserTransactionCategoryUseCaseTests
         // Assert
         result.IsError.Should().BeFalse();
         result.Value.Should().Be(1);
+        existingCategories.Should().HaveCount(1);
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
@@ -225,8 +233,9 @@ public class UpdateUserTransactionCategoryUseCaseTests
         );
 
         _transactionRecordCategoryRepositoryMock.Verify(
-            repo => repo.GetTransactionsCategoryByExternalId(
-                Guid.Parse(request.CategoryExternalId),
+            repo => repo.GetUserCategoriesByExternalIds(
+                It.IsAny<long>(), 
+                It.IsAny<List<Guid>>(), 
                 It.IsAny<CancellationToken>()),
             Times.Once
         );

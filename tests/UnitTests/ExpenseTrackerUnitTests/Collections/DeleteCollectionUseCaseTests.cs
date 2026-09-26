@@ -50,12 +50,6 @@ public class DeleteCollectionUseCaseTests
             ExternalId = currentUserExternalId
         };
 
-        TransactionCollection existingCollection = new TransactionCollection
-        {
-            Id = 1,
-            ExternalId = Guid.NewGuid()
-        };
-
         _currentUserServiceMock.Setup(
             service => service.UserExternalId)
         .Returns(currentUserExternalId);
@@ -66,9 +60,11 @@ public class DeleteCollectionUseCaseTests
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingUser);
 
+
         _transactionCollectionRepositoryMock.Setup(
-            repo => repo.GetCollectionByExternalId(
-                It.IsAny<Guid>(),
+            repo => repo.GetUserCollectionByExternalId(
+                It.IsAny<long>(), 
+                It.IsAny<Guid>(), 
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync((TransactionCollection?)null);
 
@@ -87,71 +83,14 @@ public class DeleteCollectionUseCaseTests
         );
 
         _transactionCollectionRepositoryMock.Verify(
-            repo => repo.GetCollectionByExternalId(
+            repo => repo.GetUserCollectionByExternalId(
+                It.IsAny<long>(),
                 Guid.Parse(requestCollectionExternalId),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
-
-    [Fact]
-    public async Task DeleteCollection_WhenUserIsNotOwnerOrAdmin_ShouldReturnNotOwnerError()
-    {
-        // Arrange
-        Guid currentUserExternalId = Guid.NewGuid();
-        string requestCollectionExternalId = Guid.NewGuid().ToString();
-
-        User existingUser = new User
-        {
-            Id = 1,
-            ExternalId = currentUserExternalId
-        };
-
-        TransactionCollection existingCollection = new TransactionCollection
-        {
-            Id = 1,
-            ExternalId = Guid.NewGuid(),
-            UserId = 2
-        };
-
-        _currentUserServiceMock.Setup(
-            service => service.UserExternalId)
-        .Returns(currentUserExternalId);
-
-        _userRepositoryMock.Setup(
-            repo => repo.GetUserByExternalId(
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingUser);
-
-        _transactionCollectionRepositoryMock.Setup(
-            repo => repo.GetCollectionByExternalId(
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingCollection);
-
-        // Act
-        var result = await _sut.DeleteCollection(requestCollectionExternalId, CancellationToken.None);
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(CollectionErrors.NotOwner);
-
-        _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(
-                currentUserExternalId,
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-
-        _transactionCollectionRepositoryMock.Verify(
-            repo => repo.GetCollectionByExternalId(
-                Guid.Parse(requestCollectionExternalId),
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
+    
     [Fact]
     public async Task DeleteCollection_WhenRequestIsValid_ShouldReturnAffectedRows()
     {
@@ -185,8 +124,9 @@ public class DeleteCollectionUseCaseTests
         .ReturnsAsync(existingUser);
 
         _transactionCollectionRepositoryMock.Setup(
-            repo => repo.GetCollectionByExternalId(
-                It.IsAny<Guid>(),
+            repo => repo.GetUserCollectionByExternalId(
+                It.IsAny<long>(), 
+                It.IsAny<Guid>(), 
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingCollection);
 
@@ -216,7 +156,8 @@ public class DeleteCollectionUseCaseTests
         );
 
         _transactionCollectionRepositoryMock.Verify(
-            repo => repo.GetCollectionByExternalId(
+            repo => repo.GetUserCollectionByExternalId(
+                It.IsAny<long>(),
                 Guid.Parse(requestCollectionExternalId),
                 It.IsAny<CancellationToken>()),
             Times.Once

@@ -24,7 +24,7 @@ public class RecordsCrudFlowTest : BaseIntegrationTest
         var (userExternalId, userId, collectionExternalId, categoryExternalId) = await SeedUserCollectionCategory();
 
         var createRecordDto = new TransactionRecordBuilder()
-            .BuildAddTransactionRecordRequestDto(userExternalId.ToString(), categoryExternalId.ToString(), collectionExternalId.ToString());
+            .BuildAddTransactionRecordRequestDto(categoryExternalId.ToString(), collectionExternalId.ToString());
 
         // Act - create
         

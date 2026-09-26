@@ -26,7 +26,7 @@ public class CategoriesCrudFlowTest : BaseIntegrationTest
         var userExternalId = await SeedUserData();
 
         var createCategoryDto = new TransactionRecordCategoryBuilder()
-            .BuildAddTransactionRecordCategoryRequestDto(userExternalId.ToString());
+            .BuildAddTransactionRecordCategoryRequestDto();
         
         // Act - create
         

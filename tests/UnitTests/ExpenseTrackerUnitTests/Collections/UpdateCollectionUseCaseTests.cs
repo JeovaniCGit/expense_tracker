@@ -89,93 +89,20 @@ public class UpdateCollectionUseCaseTests
         );
 
         _transactionCollectionRepositoryMock.Verify(
-            repo => repo.GetCollectionByExternalId(
+            repo => repo.GetUserCollectionByExternalId(
+                It.IsAny<long>(),
                 Guid.Parse(request.CollectionExternalId),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
     }
-
-    [Fact]
-    public async Task UpdateCollection_WhenUserIsNotOwner_ShouldReturnNotOwnerError()
-    {
-        // Arrange
-        Guid currentUserexternalId = Guid.NewGuid();
-
-        User existingUser = new User
-        {
-            Id = 1,
-            ExternalId = currentUserexternalId
-        };
-
-        UpdateCollectionRequestDto request = new UpdateCollectionRequestDto
-        {
-            CollectionExternalId = Guid.NewGuid().ToString(),
-            Description = "January",
-            EstimatedBudget = 100,
-            RealBudget = 80,
-            Version = 123
-        };
-
-        var fixedStartTimestamp = new DateTimeOffset(2024, 3, 15, 10, 30, 0, TimeSpan.Zero);
-        var fixedEndTimestamp = new DateTimeOffset(2024, 4, 15, 10, 30, 0, TimeSpan.Zero);
-
-        TransactionCollection existingCollection = new TransactionCollection
-        {
-            Id = 1,
-            ExternalId = Guid.Parse(request.CollectionExternalId),
-            StartDate = fixedStartTimestamp,
-            EndDate = fixedEndTimestamp,
-            Description = "January",
-            EstimatedBudget = 100,
-            RealBudget = 80,
-            UserId = 2
-        };
-
-        _currentUserServiceMock.Setup(
-            service => service.UserExternalId)
-        .Returns(currentUserexternalId);
-
-        _userRepositoryMock.Setup(
-            repo => repo.GetUserByExternalId(
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingUser);
-
-        _transactionCollectionRepositoryMock.Setup(
-            repo => repo.GetCollectionByExternalId(
-                It.IsAny<Guid>(),
-                It.IsAny<CancellationToken>()))
-        .ReturnsAsync(existingCollection);
-
-        // Act
-        var result = await _sut.UpdateCollection(request, CancellationToken.None);
-
-        // Assert
-        result.IsError.Should().BeTrue();
-        result.FirstError.Should().Be(CollectionErrors.NotOwner);
-
-        _userRepositoryMock.Verify(
-            repo => repo.GetUserByExternalId(
-                currentUserexternalId,
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-
-        _transactionCollectionRepositoryMock.Verify(
-            repo => repo.GetCollectionByExternalId(
-                Guid.Parse(request.CollectionExternalId),
-                It.IsAny<CancellationToken>()),
-            Times.Once
-        );
-    }
-
+    
+    
     [Fact]
     public async Task UpdateCollection_WhenRequestIsValid_ShouldReturnAffectedRows()
     {
         // Arrange
         Guid currentUserexternalId = Guid.NewGuid();
-
         User existingUser = new User
         {
             Id = 1,
@@ -217,8 +144,9 @@ public class UpdateCollectionUseCaseTests
         .ReturnsAsync(existingUser);
 
         _transactionCollectionRepositoryMock.Setup(
-            repo => repo.GetCollectionByExternalId(
-                It.IsAny<Guid>(),
+            repo => repo.GetUserCollectionByExternalId(
+                It.IsAny<long>(), 
+                It.IsAny<Guid>(), 
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingCollection);
 
@@ -242,7 +170,8 @@ public class UpdateCollectionUseCaseTests
         );
 
         _transactionCollectionRepositoryMock.Verify(
-            repo => repo.GetCollectionByExternalId(
+            repo => repo.GetUserCollectionByExternalId(
+                It.IsAny<long>(),
                 Guid.Parse(request.CollectionExternalId),
                 It.IsAny<CancellationToken>()),
             Times.Once

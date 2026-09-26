@@ -1,32 +1,21 @@
 ﻿using ExpenseTracker.Application.Abstractions.DateTimeProvider;
 using ExpenseTracker.Application.Accounts.Services.AdminServices;
 using ExpenseTracker.Application.Accounts.Services.UserServices;
-using ExpenseTracker.Application.Authentication.JwtLib;
-//using ExpenseTracker.Application.Authentication.JwtLib.Configuration;
-using ExpenseTracker.Application.Authorization.BCryptLib;
 using ExpenseTracker.Application.Authorization.Tokens.Jobs;
-using ExpenseTracker.Application.Emails.Services;
 using ExpenseTracker.Domain.Accounts.Repository;
 using ExpenseTracker.Domain.Authorization.Tokens.Repository;
 using ExpenseTracker.Domain.Categories.Repository;
 using ExpenseTracker.Domain.Collection.Repository;
-using ExpenseTracker.Domain.Email.Repository;
 using ExpenseTracker.Domain.Records.Repository;
 using ExpenseTracker.Infrastructure.Abstractions;
 using ExpenseTracker.Infrastructure.Accounts.AnalyticsService;
 using ExpenseTracker.Infrastructure.Accounts.CurrentUserService;
 using ExpenseTracker.Infrastructure.Accounts.Repository;
-using ExpenseTracker.Infrastructure.Authentication.JwtLib;
-using ExpenseTracker.Infrastructure.Authentication.JwtLib.Configuration;
-using ExpenseTracker.Infrastructure.Authorization.BCryptLib;
 using ExpenseTracker.Infrastructure.Authorization.Tokens.Jobs;
 using ExpenseTracker.Infrastructure.Authorization.Tokens.Repository;
 using ExpenseTracker.Infrastructure.Categories.Repository;
 using ExpenseTracker.Infrastructure.Collections.Repository;
 using ExpenseTracker.Infrastructure.Database;
-using ExpenseTracker.Infrastructure.Emails.Repository;
-using ExpenseTracker.Infrastructure.Emails.SendGridConfiguration;
-using ExpenseTracker.Infrastructure.Emails.Services;
 using ExpenseTracker.Infrastructure.Hangfire;
 using ExpenseTracker.Infrastructure.Records.Repository;
 using Hangfire;
@@ -35,8 +24,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using SendGrid;
 
 namespace ExpenseTracker.Infrastructure;
 
@@ -47,8 +34,6 @@ public static class InfrastructureServiceCollectionExtensions
         AddServices(services);
         AddDatabase(services, configuration);
         AddHangfireToInfrastructure(services, configuration, environment);
-        AddSendGridOptions(services, configuration);
-        AddJwtSigningOptions(services, configuration);
         return services;
     }
 
@@ -58,26 +43,14 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ITransactionRecordRepository, TransactionRecordRepository>();
         services.AddScoped<ITransactionRecordCategoryRepository, TransactionRecordCategoryRepository>();
         services.AddScoped<ITransactionCollectionRepository, TransactionCollectionRepository>();
-        services.AddScoped<IPasswordHistoryRepository, PasswordHistoryRepository>();
         services.AddScoped<ITokenRepository, TokenRepository>();
-        services.AddScoped<IPasswordHasher, PasswordHasher>();
-        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
-        services.AddScoped<IJwtTokenValidator, JwtTokenValidator>();
         services.AddScoped<IDateProvider, DateProvider>();
         services.AddScoped<IDeleteExpiredTokensService, DeleteExpiredTokensJob>();
         services.AddScoped<IAdminAnalyticsService, AdminAnalyticsService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
-        services.AddScoped<IEmailDeliveryRepository, EmailDeliveryRepository>();
         services.AddTransient<RecurringJobsScheduler>();
         services.AddHttpContextAccessor();
 
-        services.AddSingleton<ISendGridClient>(provider =>
-        {
-            SendGridOptions options = provider.GetRequiredService<IOptions<SendGridOptions>>().Value;
-            return new SendGridClient(options.ApiKey);
-        });
-
-        services.AddTransient<IEmailService, EmailService>();
         return services;
     }
 
@@ -86,28 +59,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("ExpenseTracker")));
 
-        return services;
-    }
-
-    public static IServiceCollection AddSendGridOptions(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.Configure<SendGridOptions>(options =>
-        {
-            options.FromEmail = configuration.GetValue<string>("Email:FromEmail")!;
-            options.FromName = configuration.GetValue<string>("Email:FromName")!;
-            options.ApiKey = configuration.GetValue<string>("SendGrid:ApiKey")!;
-            options.VerificationTemplateId = configuration.GetValue<string>("SendGrid:VerificationTemplateId")!;
-            options.ResetTemplateId = configuration.GetValue<string>("SendGrid:ResetTemplateId")!;
-        });
-        return services;
-    }
-
-    public static IServiceCollection AddJwtSigningOptions(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.AddOptions<JwtOptions>()
-            .Bind(configuration.GetSection("Jwt"))
-            .ValidateOnStart();
-        
         return services;
     }
 

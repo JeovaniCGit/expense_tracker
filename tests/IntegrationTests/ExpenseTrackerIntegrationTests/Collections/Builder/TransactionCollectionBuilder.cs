@@ -102,12 +102,11 @@ public class TransactionCollectionBuilder
         };
     }
 
-    public AddCollectionRequestDto BuildAddCollectionRequestDto(string userExternalId)
+    public AddCollectionRequestDto BuildAddCollectionRequestDto()
     {
         return new AddCollectionRequestDto
         {
             Description = _description,
-            UserExternalId = userExternalId,
             EstimatedBudget =  _estimatedBudget,
             RealBudget = _realBudget,
             StartDate = _startDate,

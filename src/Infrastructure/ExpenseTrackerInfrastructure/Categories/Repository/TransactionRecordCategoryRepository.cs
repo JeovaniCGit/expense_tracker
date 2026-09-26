@@ -32,9 +32,9 @@ public class TransactionRecordCategoryRepository : ITransactionRecordCategoryRep
         return affected;
     }
 
-    public async Task<long?> GetTransactionCategoryIdByExternalId(Guid externalId, CancellationToken ctoken = default)
+    public async Task<long?> GetTransactionCategoryIdByExternalIdForUser(Guid externalId, long userId, CancellationToken ctoken = default)
     {
-        return await _context.TransactionRecordCategories.Where(tc => tc.ExternalId == externalId).Select(tc => (long?)tc.Id).FirstOrDefaultAsync();
+        return await _context.TransactionRecordCategories.Where(tc => tc.ExternalId == externalId && tc.UserId == userId).Select(tc => (long?)tc.Id).FirstOrDefaultAsync();
     }
 
     public async Task<TransactionRecordCategory?> GetTransactionsCategoryByExternalId(Guid externalId, CancellationToken ctoken = default)

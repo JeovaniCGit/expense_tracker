@@ -5,7 +5,7 @@ public interface ITransactionRecordCategoryRepository
 {
     Task<TransactionRecordCategory> AddTransactionCategory(TransactionRecordCategory transactionCategory, CancellationToken ctoken = default);
 
-    Task<long?> GetTransactionCategoryIdByExternalId(Guid externalId, CancellationToken ctoken = default);
+    Task<long?> GetTransactionCategoryIdByExternalIdForUser(Guid externalId, long userId, CancellationToken ctoken = default);
 
     Task<TransactionRecordCategory?> GetTransactionsCategoryByExternalId(Guid externalId, CancellationToken ctoken = default);
 

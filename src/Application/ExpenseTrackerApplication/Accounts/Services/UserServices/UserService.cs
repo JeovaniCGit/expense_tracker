@@ -1,15 +1,11 @@
 ﻿using ErrorOr;
-using ExpenseTracker.Application.Abstractions.DateTimeProvider;
 using ExpenseTracker.Application.Abstractions.DbExceptionHandler;
 using ExpenseTracker.Application.Accounts.Contracts.Requests;
 using ExpenseTracker.Application.Accounts.Contracts.Responses;
 using ExpenseTracker.Application.Accounts.Errors;
-using ExpenseTracker.Application.Authorization.BCryptLib;
-using ExpenseTracker.Application.Authorization.UserRoles.Enums;
 using ExpenseTracker.Domain.Accounts.Entity;
 using ExpenseTracker.Domain.Accounts.Repository;
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace ExpenseTracker.Application.Accounts.Services.UserServices;
@@ -17,46 +13,39 @@ namespace ExpenseTracker.Application.Accounts.Services.UserServices;
 public sealed class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
-    private readonly IPasswordHistoryRepository _passwordHistoryRepository;
-    private readonly IPasswordHasher _passwordHasher;
-    private readonly IValidator<AddUserRequestDto> _addUserValidator;
     private readonly IValidator<UpdateUserRequestDto> _updateUserValidator;
-    private readonly IDateProvider _dateProvider;
     private readonly ICurrentUserService _currentUserService;
 
     public UserService(
         IUserRepository userRepository,
-        IPasswordHistoryRepository passwordHistoryRepository,
-        IPasswordHasher passwordHasher,
-        IValidator<AddUserRequestDto> addUserValidator,
         IValidator<UpdateUserRequestDto> updateUserValidator,
-        IDateProvider dateProvider,
         ICurrentUserService currentUserService
         )
     {
         _userRepository = userRepository;
-        _passwordHistoryRepository = passwordHistoryRepository;
-        _passwordHasher = passwordHasher;
-        _addUserValidator = addUserValidator;
         _updateUserValidator = updateUserValidator;
-        _dateProvider = dateProvider;
         _currentUserService = currentUserService;
     }
 
-    public async Task<ErrorOr<int>> DeleteUser(string externalId, CancellationToken ctoken = default)
+    public async Task<ErrorOr<int>> DeleteUser(string? externalId = null, CancellationToken ctoken = default)
     {
         Guid currentUserExternalId = _currentUserService.UserExternalId;
-        User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
-
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(externalId), ctoken);
-        if (existingUser is null)
-            return UserErrors.InvalidArgs;
-
-        if (currentUser!.RoleId != (int)UserRoleEnum.Admin 
-            && currentUser!.ExternalId != Guid.Parse(externalId))
-            return UserErrors.Forbidden;
-
-        return await _userRepository.DeleteUser(existingUser, ctoken);
+        if (string.IsNullOrEmpty(externalId))
+        {
+            User? existingUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
+            if (currentUserExternalId != existingUser!.ExternalId)
+                return UserErrors.InvalidArgs;
+            
+            return await _userRepository.DeleteUser(existingUser!, ctoken);
+        }
+        else
+        {
+            User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(externalId), ctoken);
+            if (currentUserExternalId != existingUser!.ExternalId)
+                return UserErrors.InvalidArgs;
+            
+            return await _userRepository.DeleteUser(existingUser!, ctoken);
+        }
     }
 
     public async Task<IEnumerable<GetAllUsersResponseDto>> GetAllUsers(int page, int pageSize, CancellationToken ctoken = default)
@@ -75,12 +64,13 @@ public sealed class UserService : IUserService
     public async Task<ErrorOr<GetUserResponseDto>> GetUserByExternalId(CancellationToken ctoken = default)
     {
         Guid currentUserExternalId = _currentUserService.UserExternalId;
-
         User? existingUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
+        if (currentUserExternalId != existingUser!.ExternalId)
+            return UserErrors.InvalidArgs;
 
         return new GetUserResponseDto
         {
-            UserExternalId = existingUser.ExternalId,
+            UserExternalId = existingUser!.ExternalId,
             Firstname = existingUser.Firstname,
             Lastname = existingUser.Lastname,
             Email = existingUser.Email,
@@ -93,51 +83,14 @@ public sealed class UserService : IUserService
         await _updateUserValidator.ValidateAndThrowAsync(request, ctoken);
 
         Guid currentUserExternalId = _currentUserService.UserExternalId;
-        User? currentUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
+        User? existingUser = await _userRepository.GetUserByExternalId(currentUserExternalId, ctoken);
 
-        User? existingUser = await _userRepository.GetUserByExternalId(Guid.Parse(request.UserExternalId), ctoken);
-
-        if (existingUser is null)
-            return UserErrors.NotFound;
-
-        if (currentUserExternalId != existingUser.ExternalId)
-            return UserErrors.Forbidden;
-
-        if (!string.IsNullOrEmpty(request.Password))
-        {
-            string newHashedPass = _passwordHasher.Hash(request.Password!);
-            PasswordHistory? passwordHistory = await _passwordHistoryRepository.GetByPasswordHash(newHashedPass, ctoken);
-
-            if (passwordHistory is not null)
-                return UserErrors.InvalidPassword;
-        }
+        if (currentUserExternalId != existingUser!.ExternalId)
+            return UserErrors.InvalidArgs;
 
         existingUser.Firstname = request.Firstname ?? existingUser.Firstname;
         existingUser.Lastname = request.Lastname ?? existingUser.Lastname;
         existingUser.Email = request.Email ?? existingUser.Email;
-        existingUser.Password = request.Password is null ? string.Empty : _passwordHasher.Hash(request.Password);
-
-        if (!string.IsNullOrEmpty(request.Password))
-        {
-            PasswordHistory newPasswordHistory = new PasswordHistory
-            {
-                UserId = existingUser.Id,
-                PasswordHash = existingUser.Password,
-                CreatedAt = _dateProvider.Now
-            };
-
-            try
-            {
-                await _passwordHistoryRepository.Add(newPasswordHistory, ctoken);
-                existingUser.PasswordLastUpdated = _dateProvider.Now;
-
-                return await _userRepository.UpdateUser(existingUser, ctoken);
-
-            } catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
-            {
-                return UserErrors.DuplicatedEntry;
-            }
-        }
 
         try
         {

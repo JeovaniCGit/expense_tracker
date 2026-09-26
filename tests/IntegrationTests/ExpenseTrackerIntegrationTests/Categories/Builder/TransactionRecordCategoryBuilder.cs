@@ -50,12 +50,11 @@ public class TransactionRecordCategoryBuilder
         };
     }
 
-    public AddTransactionRecordCategoryRequestDto BuildAddTransactionRecordCategoryRequestDto(string userExternalId)
+    public AddTransactionRecordCategoryRequestDto BuildAddTransactionRecordCategoryRequestDto()
     {
         return new AddTransactionRecordCategoryRequestDto
         {
             CategoryName = _categoryName,
-            UserExternalId = userExternalId
         };
     }
     

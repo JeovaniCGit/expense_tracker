@@ -1,5 +1,4 @@
 ﻿using Asp.Versioning;
-using ExpenseTracker.API.Authentication.Cookies;
 using ExpenseTracker.API.Logging.Middleware;
 using ExpenseTracker.API.Swagger;
 using ExpenseTracker.API.Validation.Middleware;
@@ -22,7 +21,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
-using ExpenseTracker.Infrastructure.Authentication.JwtLib.Configuration;
+using Microsoft.Identity.Web;
 
 namespace ExpenseTracker.API;
 
@@ -30,15 +29,13 @@ public static class ApiSetupConfiguration
 {
     public static IServiceCollection AddApiSetup(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
-        services.AddSingleton<AuthCookieFactory>();
         AddAuthorizationConfiguration(services, configuration);
-        AddAuthenticationConfiguration(services);
+        AddAuthenticationConfiguration(services, configuration);
         AddRateLimiting(services);
         AddCors(services, configuration, environment);
         AddRequestTimeout(services);
         AddApiVersioning(services);
         services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
-
         return services;
     }
 
@@ -51,38 +48,19 @@ public static class ApiSetupConfiguration
             {
                 string name = perm.PermissionName;
                 options.AddPolicy(name, policy =>
-                {
-                    policy.RequireClaim("Permission", name);
-                });
+                    policy.RequireAssertion(context =>
+                        context.User.IsInRole("Admin") || context.User.IsInRole(name)));
             }
         });
 
         return services;
     }
 
-    public static IServiceCollection AddAuthenticationConfiguration(this IServiceCollection services)
+    public static IServiceCollection AddAuthenticationConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                var sp = services.BuildServiceProvider();
-                var jwt = sp.GetRequiredService<IOptions<JwtOptions>>().Value;
+            .AddMicrosoftIdentityWebApi(configuration, "AzureAd");
 
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Convert.FromBase64String(jwt.AccessTokenSigningKey)
-                    ),
-                    ValidateIssuerSigningKey = true,
-                    ValidateLifetime = true,
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidIssuer = jwt.Issuer,
-                    ValidAudience = jwt.Audience,
-                    ClockSkew = TimeSpan.FromSeconds(30)
-                };
-            });
-        
         return services;
     }
 
@@ -123,6 +101,12 @@ public static class ApiSetupConfiguration
         app.UseMiddleware<ValidationMappingMiddleware>();
         return app;
     }
+    public static WebApplication AddUserProvisioningMiddleware(this WebApplication app)
+    {
+        app.UseMiddleware<JitUserProvisioningMiddleware>();
+        return app;
+    }
+    
 
     public static IServiceCollection AddRateLimiting(this IServiceCollection services)
     {

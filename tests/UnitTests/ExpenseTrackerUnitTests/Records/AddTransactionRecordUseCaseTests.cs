@@ -59,7 +59,6 @@ public class AddTransactionRecordUseCaseTests
         {
             TransactionCategoryExternalId = Guid.NewGuid().ToString(),
             TransactionCollectionExternalId = Guid.NewGuid().ToString(),
-            TransactionUserExternalId = Guid.NewGuid().ToString(),
             TransactionValue = 2,
         };
 
@@ -68,8 +67,7 @@ public class AddTransactionRecordUseCaseTests
                 It.IsAny<Guid>(), 
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
-
-
+        
         // Act
         var result = await _sut.AddUserTransactionRecord(request, CancellationToken.None);
 
@@ -79,7 +77,7 @@ public class AddTransactionRecordUseCaseTests
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
-                Guid.Parse(request.TransactionUserExternalId), 
+                It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
@@ -93,7 +91,6 @@ public class AddTransactionRecordUseCaseTests
         {
             TransactionCategoryExternalId = Guid.NewGuid().ToString(),
             TransactionCollectionExternalId = Guid.NewGuid().ToString(),
-            TransactionUserExternalId = Guid.NewGuid().ToString(),
             TransactionValue = 2,
         };
 
@@ -129,8 +126,6 @@ public class AddTransactionRecordUseCaseTests
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
-            Password = "hashedpassword",
-            RoleId = (long)UserRoleEnum.RegularUser,
             ExternalId = Guid.NewGuid()
         };
 
@@ -141,8 +136,9 @@ public class AddTransactionRecordUseCaseTests
         .ReturnsAsync(existingUser);
 
         _transactionCollectionRepositoryMock.Setup(
-            repo => repo.GetCollectionIdByExternalId(
+            repo => repo.GetCollectionIdByExternalIdForUser(
                 It.IsAny<Guid>(),
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync((long?)null);
 
@@ -155,14 +151,15 @@ public class AddTransactionRecordUseCaseTests
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
-                Guid.Parse(request.TransactionUserExternalId), 
+                It.IsAny<Guid>(), 
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _transactionCollectionRepositoryMock.Verify(
-            repo => repo.GetCollectionIdByExternalId(
+            repo => repo.GetCollectionIdByExternalIdForUser(
                 It.IsAny<Guid>(),
+                existingUser.Id,
                 It.IsAny<CancellationToken>()),
                 Times.Once
         );
@@ -176,7 +173,6 @@ public class AddTransactionRecordUseCaseTests
         {
             TransactionCategoryExternalId = Guid.NewGuid().ToString(),
             TransactionCollectionExternalId = Guid.NewGuid().ToString(),
-            TransactionUserExternalId = Guid.NewGuid().ToString(),
             TransactionValue = 2,
         };
 
@@ -188,8 +184,6 @@ public class AddTransactionRecordUseCaseTests
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
-            Password = "hashedpassword",
-            RoleId = (long)UserRoleEnum.RegularUser,
             ExternalId = Guid.NewGuid()
         };
 
@@ -219,8 +213,9 @@ public class AddTransactionRecordUseCaseTests
         .ReturnsAsync(existingUser);
 
         _transactionCollectionRepositoryMock.Setup(
-            repo => repo.GetCollectionIdByExternalId(
+            repo => repo.GetCollectionIdByExternalIdForUser(
                 It.IsAny<Guid>(),
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingCollectionId);
 
@@ -239,14 +234,15 @@ public class AddTransactionRecordUseCaseTests
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
-                Guid.Parse(request.TransactionUserExternalId), 
+                It.IsAny<Guid>(),
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _transactionCollectionRepositoryMock.Verify(
-            repo => repo.GetCollectionIdByExternalId(
+            repo => repo.GetCollectionIdByExternalIdForUser(
                 It.IsAny<Guid>(),
+                existingUser.Id,
                 It.IsAny<CancellationToken>()),
                 Times.Once
         );
@@ -267,7 +263,6 @@ public class AddTransactionRecordUseCaseTests
         {
             TransactionCategoryExternalId = Guid.NewGuid().ToString(),
             TransactionCollectionExternalId = Guid.NewGuid().ToString(),
-            TransactionUserExternalId = Guid.NewGuid().ToString(),
             TransactionValue = 2,
         };
 
@@ -297,8 +292,6 @@ public class AddTransactionRecordUseCaseTests
             Firstname = "John",
             Lastname = "Doe",
             Email = "john@doe.com",
-            Password = "hashedpassword",
-            RoleId = (long)UserRoleEnum.RegularUser,
             ExternalId = Guid.NewGuid()
         };
 
@@ -320,8 +313,9 @@ public class AddTransactionRecordUseCaseTests
         .ReturnsAsync(existingUser);
 
          _transactionCollectionRepositoryMock.Setup(
-            repo => repo.GetCollectionIdByExternalId(
+            repo => repo.GetCollectionIdByExternalIdForUser(
                 It.IsAny<Guid>(),
+                It.IsAny<long>(),
                 It.IsAny<CancellationToken>()))
         .ReturnsAsync(existingCollectionId);
         
@@ -353,14 +347,15 @@ public class AddTransactionRecordUseCaseTests
 
         _userRepositoryMock.Verify(
             repo => repo.GetUserByExternalId(
-                Guid.Parse(request.TransactionUserExternalId), 
+                It.IsAny<Guid>(), 
                 It.IsAny<CancellationToken>()),
             Times.Once
         );
 
         _transactionCollectionRepositoryMock.Verify(
-            repo => repo.GetCollectionIdByExternalId(
+            repo => repo.GetCollectionIdByExternalIdForUser(
                 It.IsAny<Guid>(),
+                existingUser.Id,
                 It.IsAny<CancellationToken>()),
                 Times.Once
         );
